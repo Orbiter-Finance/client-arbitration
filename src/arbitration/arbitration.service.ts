@@ -573,7 +573,7 @@ export class ArbitrationService {
             tx.sourceTxHash,
             ruleKey,
             tx.freezeToken,
-            ethers.BigNumber.from(freezeAmount).toNumber(),
+            ethers.BigNumber.from(freezeAmount),
             ethers.BigNumber.from(parentNodeNumOfTargetNode || 0),
         ];
         logger.debug(`encodeData: ${JSON.stringify(encodeData)}`);
@@ -702,6 +702,16 @@ export class ArbitrationService {
             logger.error(`nonce of destAmount, ${JSON.stringify(txData)}`);
             return;
         }
+        logger.debug('verifiedSourceTxData',
+            chain.minVerifyChallengeSourceTxSecond,
+            chain.maxVerifyChallengeSourceTxSecond,
+            txData.sourceNonce,
+            txData.targetChain,
+            txData.sourceAddress,
+            txData.targetToken,
+            destAmount,
+            responseMakersHash,
+            responseTime);
         const verifiedSourceTxData = {
             minChallengeSecond: ethers.BigNumber.from(chain.minVerifyChallengeSourceTxSecond),
             maxChallengeSecond: ethers.BigNumber.from(chain.maxVerifyChallengeSourceTxSecond),
