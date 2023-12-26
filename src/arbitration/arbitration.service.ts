@@ -539,6 +539,19 @@ export class ArbitrationService {
         return response;
     }
 
+    async confirmTx(hash) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        const provider = new providers.JsonRpcProvider({
+            url: arbitrationConfig.rpc,
+        });
+        const receipt = await provider.getTransactionReceipt(hash);
+        if (!receipt?.blockNumber) {
+            console.log(`${hash} transaction status confirmation in progress ...`);
+            return await this.confirmTx(hash);
+        }
+        return receipt;
+    }
+
     async handleUserArbitration(tx: ArbitrationTransaction) {
         logger.info(`handleUserArbitration begin ${tx.sourceTxHash}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
@@ -593,7 +606,9 @@ export class ArbitrationService {
             submitSourceTxHash: response.hash,
             isNeedProof: 1
         });
-        logger.info(`handleUserArbitration success ${tx.sourceTxHash} ${response.hash}`);
+        logger.info(`handleUserArbitration send ${tx.sourceTxHash} ${response.hash}`);
+        const receipt = await this.confirmTx(response.hash);
+        logger.info(`handleUserArbitration success ${JSON.stringify(receipt)}`);
     }
 
     async userSubmitProof(txData: VerifyChallengeSourceParams) {
