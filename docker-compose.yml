@@ -1,0 +1,15 @@
+version: '3.8'
+networks:
+  app-network:
+    driver: bridge
+services:
+  arbitration-client:
+    build: .
+    container_name: arbitration-client
+    restart: always
+    ports:
+      - '3000:3000'
+    networks:
+      - app-network
+    volumes:
+      - './runtime:/app/runtime'

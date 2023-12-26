@@ -1,0 +1,1089 @@
+[
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "bytes32",
+                "name": "challengeId",
+                "type": "bytes32"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "sourceTxFrom",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "sourceTxTime",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "freezeToken",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "challengeUserRatio",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "freezeAmount0",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "freezeAmount1",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "challengeTime",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "abortTime",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "sourceTxBlockNum",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "sourceTxIndex",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "challengerVerifyTransactionFee",
+                        "type": "uint128"
+                    }
+                ],
+                "indexed": false,
+                "internalType": "struct IORMakerDeposit.ChallengeStatement",
+                "name": "statement",
+                "type": "tuple"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "winner",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "verifiedTime0",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "verifiedTime1",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "bytes32",
+                        "name": "verifiedDataHash0",
+                        "type": "bytes32"
+                    }
+                ],
+                "indexed": false,
+                "internalType": "struct IORMakerDeposit.ChallengeResult",
+                "name": "result",
+                "type": "tuple"
+            }
+        ],
+        "name": "ChallengeInfoUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "impl",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "bytes32",
+                "name": "columnArrayHash",
+                "type": "bytes32"
+            },
+            {
+                "indexed": false,
+                "internalType": "address[]",
+                "name": "dealers",
+                "type": "address[]"
+            },
+            {
+                "indexed": false,
+                "internalType": "address[]",
+                "name": "ebcs",
+                "type": "address[]"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint64[]",
+                "name": "chainIds",
+                "type": "uint64[]"
+            }
+        ],
+        "name": "ColumnArrayUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "impl",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256[]",
+                "name": "responseMakers",
+                "type": "uint256[]"
+            }
+        ],
+        "name": "ResponseMakersUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "impl",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "ebc",
+                "type": "address"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "bytes32",
+                        "name": "root",
+                        "type": "bytes32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "version",
+                        "type": "uint32"
+                    }
+                ],
+                "indexed": false,
+                "internalType": "struct RuleLib.RootWithVersion",
+                "name": "rootWithVersion",
+                "type": "tuple"
+            }
+        ],
+        "name": "RulesRootUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "impl",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint64",
+                "name": "chainId",
+                "type": "uint64"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "spv",
+                "type": "address"
+            }
+        ],
+        "name": "SpvUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "requestAmount",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint64",
+                "name": "requestTimestamp",
+                "type": "uint64"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "requestToken",
+                "type": "address"
+            }
+        ],
+        "name": "WithdrawRequested",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "challengeIdentNum",
+                "type": "uint256"
+            }
+        ],
+        "name": "canChallengeContinue",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint64",
+                "name": "sourceTxTime",
+                "type": "uint64"
+            },
+            {
+                "internalType": "uint64",
+                "name": "sourceChainId",
+                "type": "uint64"
+            },
+            {
+                "internalType": "uint64",
+                "name": "sourceTxBlockNum",
+                "type": "uint64"
+            },
+            {
+                "internalType": "uint64",
+                "name": "sourceTxIndex",
+                "type": "uint64"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "sourceTxHash",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "ruleKey",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "address",
+                "name": "freezeToken",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "freezeAmount1",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "parentNodeNumOfTargetNode",
+                "type": "uint256"
+            }
+        ],
+        "name": "challenge",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint64",
+                "name": "sourceChainId",
+                "type": "uint64"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "sourceTxHash",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "address[]",
+                "name": "challengers",
+                "type": "address[]"
+            }
+        ],
+        "name": "checkChallenge",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "columnArrayHash",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "deposit",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+            }
+        ],
+        "name": "freezeAssets",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getVersionAndEnableTime",
+        "outputs": [
+            {
+                "internalType": "uint128",
+                "name": "version",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint64",
+                "name": "blockNumber",
+                "type": "uint64"
+            },
+            {
+                "internalType": "uint64",
+                "name": "enableTime",
+                "type": "uint64"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "targetToken",
+                "type": "address"
+            }
+        ],
+        "name": "getWithdrawRequestList",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "requestAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "requestTimestamp",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "requestToken",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct IORMakerDeposit.WithdrawRequestList",
+                "name": "",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "owner_",
+                "type": "address"
+            }
+        ],
+        "name": "initialize",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "mdcFactory",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "responseMakersHash",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "ebc",
+                "type": "address"
+            }
+        ],
+        "name": "rulesRoot",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "bytes32",
+                        "name": "root",
+                        "type": "bytes32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "version",
+                        "type": "uint32"
+                    }
+                ],
+                "internalType": "struct RuleLib.RootWithVersion",
+                "name": "",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint64",
+                "name": "chainId",
+                "type": "uint64"
+            }
+        ],
+        "name": "spv",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint64",
+                "name": "enableTime",
+                "type": "uint64"
+            },
+            {
+                "internalType": "address[]",
+                "name": "dealers",
+                "type": "address[]"
+            },
+            {
+                "internalType": "address[]",
+                "name": "ebcs",
+                "type": "address[]"
+            },
+            {
+                "internalType": "uint64[]",
+                "name": "chainIds",
+                "type": "uint64[]"
+            }
+        ],
+        "name": "updateColumnArray",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint64",
+                "name": "enableTime",
+                "type": "uint64"
+            },
+            {
+                "internalType": "bytes[]",
+                "name": "responseMakerSignatures",
+                "type": "bytes[]"
+            }
+        ],
+        "name": "updateResponseMakers",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint64",
+                "name": "enableTime",
+                "type": "uint64"
+            },
+            {
+                "internalType": "address",
+                "name": "ebc",
+                "type": "address"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "uint64",
+                        "name": "chainId0",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "chainId1",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint8",
+                        "name": "status0",
+                        "type": "uint8"
+                    },
+                    {
+                        "internalType": "uint8",
+                        "name": "status1",
+                        "type": "uint8"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "token0",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "token1",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "minPrice0",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "minPrice1",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "maxPrice0",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "maxPrice1",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "withholdingFee0",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "withholdingFee1",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "tradingFee0",
+                        "type": "uint32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "tradingFee1",
+                        "type": "uint32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "responseTime0",
+                        "type": "uint32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "responseTime1",
+                        "type": "uint32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "compensationRatio0",
+                        "type": "uint32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "compensationRatio1",
+                        "type": "uint32"
+                    }
+                ],
+                "internalType": "struct RuleLib.Rule[]",
+                "name": "rules",
+                "type": "tuple[]"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "bytes32",
+                        "name": "root",
+                        "type": "bytes32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "version",
+                        "type": "uint32"
+                    }
+                ],
+                "internalType": "struct RuleLib.RootWithVersion",
+                "name": "rootWithVersion",
+                "type": "tuple"
+            },
+            {
+                "internalType": "uint64[]",
+                "name": "sourceChainIds",
+                "type": "uint64[]"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "pledgeAmounts",
+                "type": "uint256[]"
+            }
+        ],
+        "name": "updateRulesRoot",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint64",
+                "name": "enableTime",
+                "type": "uint64"
+            },
+            {
+                "internalType": "address",
+                "name": "ebc",
+                "type": "address"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "uint64",
+                        "name": "chainId0",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "chainId1",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint8",
+                        "name": "status0",
+                        "type": "uint8"
+                    },
+                    {
+                        "internalType": "uint8",
+                        "name": "status1",
+                        "type": "uint8"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "token0",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "token1",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "minPrice0",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "minPrice1",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "maxPrice0",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "maxPrice1",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "withholdingFee0",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "withholdingFee1",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "tradingFee0",
+                        "type": "uint32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "tradingFee1",
+                        "type": "uint32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "responseTime0",
+                        "type": "uint32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "responseTime1",
+                        "type": "uint32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "compensationRatio0",
+                        "type": "uint32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "compensationRatio1",
+                        "type": "uint32"
+                    }
+                ],
+                "internalType": "struct RuleLib.Rule[]",
+                "name": "rules",
+                "type": "tuple[]"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "bytes32",
+                        "name": "root",
+                        "type": "bytes32"
+                    },
+                    {
+                        "internalType": "uint32",
+                        "name": "version",
+                        "type": "uint32"
+                    }
+                ],
+                "internalType": "struct RuleLib.RootWithVersion",
+                "name": "rootWithVersion",
+                "type": "tuple"
+            },
+            {
+                "internalType": "uint64[]",
+                "name": "sourceChainIds",
+                "type": "uint64[]"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "pledgeAmounts",
+                "type": "uint256[]"
+            },
+            {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+            }
+        ],
+        "name": "updateRulesRootERC20",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint64",
+                "name": "enableTime",
+                "type": "uint64"
+            },
+            {
+                "internalType": "address[]",
+                "name": "spvs",
+                "type": "address[]"
+            },
+            {
+                "internalType": "uint64[]",
+                "name": "chainIds",
+                "type": "uint64[]"
+            }
+        ],
+        "name": "updateSpvs",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "challenger",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "spvAddress",
+                "type": "address"
+            },
+            {
+                "internalType": "uint64",
+                "name": "sourceChainId",
+                "type": "uint64"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "sourceTxHash",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "bytes",
+                "name": "proof",
+                "type": "bytes"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "minChallengeSecond",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "maxChallengeSecond",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "nonce",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "destChainId",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "from",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "destToken",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "destAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "responseMakersHash",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "responseTime",
+                        "type": "uint256"
+                    }
+                ],
+                "internalType": "struct IORMakerDeposit.verifiedDataInfo",
+                "name": "verifiedSourceTxData",
+                "type": "tuple"
+            },
+            {
+                "internalType": "bytes",
+                "name": "rawDatas",
+                "type": "bytes"
+            }
+        ],
+        "name": "verifyChallengeDest",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "challenger",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "spvAddress",
+                "type": "address"
+            },
+            {
+                "internalType": "uint64",
+                "name": "sourceChainId",
+                "type": "uint64"
+            },
+            {
+                "internalType": "bytes",
+                "name": "proof",
+                "type": "bytes"
+            },
+            {
+                "internalType": "bytes",
+                "name": "rawDatas",
+                "type": "bytes"
+            },
+            {
+                "internalType": "bytes",
+                "name": "rlpRuleBytes",
+                "type": "bytes"
+            }
+        ],
+        "name": "verifyChallengeSource",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint64",
+                "name": "enableTime",
+                "type": "uint64"
+            }
+        ],
+        "name": "versionIncreaseAndEnableTime",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+            }
+        ],
+        "name": "withdraw",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "requestToken",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "requestAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "withdrawRequest",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "stateMutability": "payable",
+        "type": "receive"
+    }
+]

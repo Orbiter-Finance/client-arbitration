@@ -1,0 +1,46 @@
+# compiled output
+/dist/*
+/node_modules/*
+/runtime
+/test
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+#/src/config/chains/chains.json
+#/src/config/chains/testnet.json
+
+deploy.sh
+
+.env
+prisma/thegraph
+prisma/bridge
