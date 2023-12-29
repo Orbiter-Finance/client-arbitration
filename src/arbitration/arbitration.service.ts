@@ -59,17 +59,26 @@ export class ArbitrationService {
         return nowTime >= minVerifyChallengeSourceTime && nowTime <= maxVerifyChallengeSourceTime;
     }
 
-    async getMDCAddress(owner: string) {
+    async getMDCAndOwnerAddress(makerAddress: string) {
         const queryStr = `
-    {
-      mdcs(where: {owner: "${owner}"}) {
-        id
-        owner
-      }
-    }
-          `;
+          mdcs (where:{
+            or:[
+              {
+                owner:"${makerAddress.toLowerCase()}"
+              },
+              {
+                responseMaker_:{
+                    id:"${makerAddress.toLowerCase()}"
+                }
+              }
+            ]
+          }){
+            id
+            owner
+          }
+      `;
         const result = await this.querySubgraph(queryStr);
-        return result?.data?.mdcs?.[0]?.id;
+        return result?.data?.mdcs?.[0];
     }
 
     async getChainRels(): Promise<ChainRel[]> {
@@ -100,14 +109,13 @@ export class ArbitrationService {
         return chainRels;
     }
 
-    async getChallengeNodeNumber(owner: string, mdcAddress: string, newChallengeNodeNumber: string) {
+    async getChallengeNodeNumber(mdcAddress: string, newChallengeNodeNumber: string) {
         const queryStr = `
         {
             createChallenges(
                 where: {
                     challengeNodeNumber_gt: "${newChallengeNodeNumber}"
                     challengeManager_: {
-                        owner: "${owner}"
                         mdcAddr: "${mdcAddress}"
                     }
                 }
@@ -502,8 +510,8 @@ export class ArbitrationService {
         return gasFee;
     }
 
-    async getWallet() {
-        const arbitrationPrivateKey = arbitrationConfig.privateKey;
+    async getWallet(key?) {
+        const arbitrationPrivateKey = key || arbitrationConfig.privateKey;
         if (!arbitrationPrivateKey) {
             throw new Error('arbitrationPrivateKey not config');
         }
@@ -513,8 +521,8 @@ export class ArbitrationService {
         return new ethers.Wallet(arbitrationPrivateKey).connect(provider);
     }
 
-    async send(to, value, data) {
-        const account = await this.getWallet();
+    async send(to, value, data, acc?) {
+        const account = acc || await this.getWallet();
         const chainId = await account.getChainId();
         const nonce = Math.max(await account.getTransactionCount('pending'), accountNonce);
         const transactionRequest = {
@@ -555,11 +563,13 @@ export class ArbitrationService {
     async handleUserArbitration(tx: ArbitrationTransaction) {
         logger.info(`handleUserArbitration begin ${tx.sourceTxHash}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
-        const mdcAddress = await this.getMDCAddress(tx.sourceMaker);
-        // const newChallengeNodeNumber = utils.defaultAbiCoder.encode(
-        //     ['uint64', 'uint64', 'uint64', 'uint64'],
-        //     [+tx.sourceTxTime, +tx.sourceChainId, +tx.sourceTxBlockNum, +tx.sourceTxIndex],
-        // );
+        const mdc = await this.getMDCAndOwnerAddress(tx.sourceMaker);
+        if (!mdc?.mdcAddress || !mdc?.owner) {
+            logger.error(`none of MDC, makerAddress: ${tx.sourceMaker}`);
+            return;
+        }
+        const mdcAddress = mdc.mdcAddress;
+        const owner = mdc.owner;
         let newChallengeNodeNumber = '0x';
         for (const item of [+tx.sourceTxTime, +tx.sourceChainId, +tx.sourceTxBlockNum, +tx.sourceTxIndex]) {
             const challengeNode = utils.defaultAbiCoder.encode(
@@ -569,11 +579,11 @@ export class ArbitrationService {
             newChallengeNodeNumber += challengeNode.substr(challengeNode.length - 16, 16);
         }
         logger.debug("newChallengeNodeNumber", newChallengeNodeNumber);
-        const parentNodeNumOfTargetNode = await this.getChallengeNodeNumber(tx.sourceMaker, mdcAddress, newChallengeNodeNumber);
+        const parentNodeNumOfTargetNode = await this.getChallengeNodeNumber(mdcAddress, newChallengeNodeNumber);
         logger.debug('parentNodeNumOfTargetNode', parentNodeNumOfTargetNode);
-        const ruleKey = await this.getRuleKey(tx.sourceMaker, tx.ebcAddress, tx.ruleId);
+        const ruleKey = await this.getRuleKey(owner, tx.ebcAddress, tx.ruleId);
         if (!ruleKey) {
-            logger.error(`none of ruleKey, owner: ${tx.sourceMaker} ebcAddress: ${tx.ebcAddress} ruleId: ${tx.ruleId}`);
+            logger.error(`none of ruleKey, owner: ${owner} ebcAddress: ${tx.ebcAddress} ruleId: ${tx.ruleId}`);
             return;
         }
         const freezeAmount = new BigNumber(tx.freezeAmount1).multipliedBy(2).toFixed(0);
@@ -617,12 +627,14 @@ export class ArbitrationService {
             return;
         }
         logger.info(`userSubmitProof begin ${txData.hash}`);
-        const mdcAddress = await this.getMDCAddress(txData.sourceMaker);
-        if (!mdcAddress) {
-            logger.error(`nonce of mdcAddress, ${JSON.stringify(txData)}`);
+        const mdc = await this.getMDCAndOwnerAddress(txData.sourceMaker);
+        if (!mdc?.mdcAddress || !mdc?.owner) {
+            logger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
             return;
         }
-        const columnArray = await this.getColumnArray(txData.sourceTime, mdcAddress, txData.sourceMaker);
+        const mdcAddress = mdc.mdcAddress;
+        const owner = mdc.owner;
+        const columnArray = await this.getColumnArray(txData.sourceTime, mdcAddress, owner);
         if (!columnArray?.dealers) {
             logger.error(`nonce of columnArray, ${JSON.stringify(txData)}`);
             return;
@@ -633,7 +645,7 @@ export class ArbitrationService {
             ['address[]', 'address[]', 'uint64[]', 'address'],
             [dealers, ebcs, chainIds, ebc],
         );
-        const rule: any = await this.getRule(txData.sourceMaker, txData.ebcAddress, txData.ruleId);
+        const rule: any = await this.getRule(owner, txData.ebcAddress, txData.ruleId);
         if (!rule?.chain0) {
             logger.error(`nonce of rule, ${JSON.stringify(txData)}`);
             return;
@@ -694,7 +706,13 @@ export class ArbitrationService {
         logger.info(`makerSubmitProof begin sourceId: ${txData.sourceId}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
         const chainRels = await this.getChainRels();
-        const mdcAddress = await this.getMDCAddress(txData.sourceMaker);
+        const mdc = await this.getMDCAndOwnerAddress(txData.sourceMaker);
+        if (!mdc?.mdcAddress || !mdc?.owner) {
+            logger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
+            return;
+        }
+        const mdcAddress = mdc.mdcAddress;
+        const owner = mdc.owner;
         const chain = chainRels.find(c => +c.id === +txData.sourceChain);
         if (!chain) {
             logger.error(`nonce of chainRels, ${JSON.stringify(txData)}`);
@@ -707,12 +725,12 @@ export class ArbitrationService {
             [responseMakerList.map(item => ethers.BigNumber.from(item))],
         );
         const responseMakersHash = utils.keccak256(rawDatas);
-        const responseTime = await this.getResponseTime(txData.sourceMaker, txData.ebcAddress, txData.ruleId, txData.sourceChain, txData.targetChain);
+        const responseTime = await this.getResponseTime(owner, txData.ebcAddress, txData.ruleId, txData.sourceChain, txData.targetChain);
         if (!responseTime) {
             logger.error(`nonce of responseTime, ${JSON.stringify(txData)}`);
             return;
         }
-        const destAmount = await this.getEBCValue(txData.sourceMaker, txData.ebcAddress, txData.ruleId, txData.sourceChain, txData.targetChain, txData.sourceAmount);
+        const destAmount = await this.getEBCValue(owner, txData.ebcAddress, txData.ruleId, txData.sourceChain, txData.targetChain, txData.sourceAmount);
         if (!destAmount) {
             logger.error(`nonce of destAmount, ${JSON.stringify(txData)}`);
             return;
@@ -761,6 +779,10 @@ export class ArbitrationService {
     }
 
     async checkChallenge(txData: CheckChallengeParams) {
+        if (!arbitrationConfig.liquidatePrivateKey) {
+            logger.error('liquidatePrivateKey key not injected');
+            return { message: 'liquidatePrivateKey key not injected' };
+        }
         logger.info(`CheckChallenge begin: ${JSON.stringify(txData)}`);
         const encodeData = [
             txData.sourceChainId,
@@ -770,7 +792,7 @@ export class ArbitrationService {
         logger.debug(`encodeData: ${JSON.stringify(encodeData)}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
         const data = ifa.encodeFunctionData('checkChallenge', encodeData);
-        const response = await this.send(txData.mdcAddress, ethers.BigNumber.from(0), data);
+        const response = await this.send(txData.mdcAddress, ethers.BigNumber.from(0), data, await this.getWallet(arbitrationConfig.liquidatePrivateKey));
         logger.debug(`CheckChallenge tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceTxHash.toLowerCase()}`, {
             challenger: txData.challenger,

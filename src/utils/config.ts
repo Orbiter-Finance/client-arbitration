@@ -5,7 +5,8 @@ import { Mutex } from 'async-mutex';
 export let arbitrationConfig: {
     privateKey?: string, secretKey?: string, rpc?: string, debug?: number,
     makerApiEndpoint?: string, subgraphEndpoint?: string, makerList?: string[],
-    gasLimit?: string, maxFeePerGas?: string, maxPriorityFeePerGas?: string
+    gasLimit?: string, maxFeePerGas?: string, maxPriorityFeePerGas?: string,
+    liquidatePrivateKey?: string
 } = {};
 
 export const configdb = new JsonDB(new Config('runtime/config', true, false, '/'));
@@ -20,6 +21,9 @@ async function initConfig() {
         arbitrationConfig = localConfig;
         if (localConfig.encryptPrivateKey) {
             arbitrationConfig.privateKey = aesDecrypt(localConfig.encryptPrivateKey, localConfig.secretKey || '');
+        }
+        if (localConfig.encryptLiquidatePrivateKey) {
+            arbitrationConfig.liquidatePrivateKey = aesDecrypt(localConfig.encryptLiquidatePrivateKey, localConfig.secretKey || '');
         }
     } catch (e) {
     }

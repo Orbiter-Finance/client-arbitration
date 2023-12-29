@@ -12,7 +12,7 @@ export class AppService {
     }
 
     async setConfig(configParams: any) {
-        const { privateKey, secretKey, rpc, debug, makerApiEndpoint, makerList, gasLimit, maxFeePerGas, maxPriorityFeePerGas } = configParams;
+        const { privateKey, secretKey, rpc, debug, makerApiEndpoint, makerList, gasLimit, maxFeePerGas, maxPriorityFeePerGas, liquidatePrivateKey } = configParams;
         if (rpc) {
             try {
                 const provider = new providers.JsonRpcProvider({
@@ -40,6 +40,22 @@ export class AppService {
                     arbitrationConfig.privateKey = privateKey;
                 } catch (e) {
                     return { code: 1, message: 'PrivateKey error' };
+                }
+            }
+        }
+        if (liquidatePrivateKey) {
+            if (arbitrationConfig.rpc) {
+                try {
+                    const provider = new providers.JsonRpcProvider({
+                        url: arbitrationConfig.rpc,
+                    });
+                    const wallet = new ethers.Wallet(liquidatePrivateKey).connect(provider);
+                    const address = await wallet.getAddress();
+                    console.log(`Inject the ${address} wallet liquidate private key`);
+                    arbitrationConfig.secretKey = secretKey ?? arbitrationConfig.secretKey;
+                    arbitrationConfig.liquidatePrivateKey = liquidatePrivateKey;
+                } catch (e) {
+                    return { code: 1, message: 'Liquidate privateKey error' };
                 }
             }
         }
@@ -73,8 +89,12 @@ export class AppService {
         }
         const config = JSON.parse(JSON.stringify(arbitrationConfig));
         delete config.privateKey;
+        delete config.liquidatePrivateKey;
         if (privateKey) {
             config.encryptPrivateKey = aesEncrypt(privateKey, config.secretKey ?? '');
+        }
+        if (liquidatePrivateKey) {
+            config.encryptLiquidatePrivateKey = aesEncrypt(liquidatePrivateKey, config.secretKey ?? '');
         }
         await configdb.push('/local', config);
         return { code: 0, message: 'success', result: config };
