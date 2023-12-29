@@ -61,20 +61,22 @@ export class ArbitrationService {
 
     async getMDCAndOwnerAddress(makerAddress: string) {
         const queryStr = `
-          mdcs (where:{
-            or:[
-              {
-                owner:"${makerAddress.toLowerCase()}"
-              },
-              {
-                responseMaker_:{
-                    id:"${makerAddress.toLowerCase()}"
-                }
+          {
+              mdcs (where:{
+                or:[
+                  {
+                    owner:"${makerAddress.toLowerCase()}"
+                  },
+                  {
+                    responseMaker_:{
+                        id:"${makerAddress.toLowerCase()}"
+                    }
+                  }
+                ]
+              }){
+                id
+                owner
               }
-            ]
-          }){
-            id
-            owner
           }
       `;
         const result = await this.querySubgraph(queryStr);
