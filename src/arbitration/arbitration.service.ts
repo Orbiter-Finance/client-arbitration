@@ -59,7 +59,7 @@ export class ArbitrationService {
         return nowTime >= minVerifyChallengeSourceTime && nowTime <= maxVerifyChallengeSourceTime;
     }
 
-    async getMDCAndOwnerAddress(makerAddress: string) {
+    async getMDCs(makerAddress: string) {
         const queryStr = `
           {
               mdcs (where:{
@@ -80,7 +80,7 @@ export class ArbitrationService {
           }
       `;
         const result = await this.querySubgraph(queryStr);
-        return result?.data?.mdcs?.[0];
+        return result?.data?.mdcs;
     }
 
     async getChainRels(): Promise<ChainRel[]> {
@@ -565,13 +565,24 @@ export class ArbitrationService {
     async handleUserArbitration(tx: ArbitrationTransaction) {
         logger.info(`handleUserArbitration begin ${tx.sourceTxHash}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
-        const mdc = await this.getMDCAndOwnerAddress(tx.sourceMaker);
-        if (!mdc?.id || !mdc?.owner) {
+        const mdcs = await this.getMDCs(tx.sourceMaker);
+        if (!mdcs || !mdcs.length) {
             logger.error(`none of MDC, makerAddress: ${tx.sourceMaker}`);
             return;
         }
-        const mdcAddress = mdc.id;
-        const owner = mdc.owner;
+        let ruleKey;
+        let mdcAddress;
+        let owner;
+        for (const mdc of mdcs) {
+            mdcAddress = mdc.id;
+            owner = mdc.owner;
+            ruleKey = await this.getRuleKey(owner, tx.ebcAddress, tx.ruleId);
+            if (ruleKey) break;
+        }
+        if (!ruleKey) {
+            logger.error(`none of ruleKey, owner: ${owner} ebcAddress: ${tx.ebcAddress} ruleId: ${tx.ruleId}`);
+            return;
+        }
         let newChallengeNodeNumber = '0x';
         for (const item of [+tx.sourceTxTime, +tx.sourceChainId, +tx.sourceTxBlockNum, +tx.sourceTxIndex]) {
             const challengeNode = utils.defaultAbiCoder.encode(
@@ -583,11 +594,8 @@ export class ArbitrationService {
         logger.debug("newChallengeNodeNumber", newChallengeNodeNumber);
         const parentNodeNumOfTargetNode = await this.getChallengeNodeNumber(mdcAddress, newChallengeNodeNumber);
         logger.debug('parentNodeNumOfTargetNode', parentNodeNumOfTargetNode);
-        const ruleKey = await this.getRuleKey(owner, tx.ebcAddress, tx.ruleId);
-        if (!ruleKey) {
-            logger.error(`none of ruleKey, owner: ${owner} ebcAddress: ${tx.ebcAddress} ruleId: ${tx.ruleId}`);
-            return;
-        }
+        logger.info(`mdcAddress: ${mdcAddress}, owner: ${owner}, parentNodeNumOfTargetNode: ${parentNodeNumOfTargetNode}`);
+
         const freezeAmount = new BigNumber(tx.freezeAmount1).multipliedBy(2).toFixed(0);
         // Obtaining arbitration deposit
         const encodeData = [
@@ -629,13 +637,25 @@ export class ArbitrationService {
             return;
         }
         logger.info(`userSubmitProof begin ${txData.hash}`);
-        const mdc = await this.getMDCAndOwnerAddress(txData.sourceMaker);
-        if (!mdc?.id || !mdc?.owner) {
+        const mdcs = await this.getMDCs(txData.sourceMaker);
+        if (!mdcs || !mdcs.length) {
             logger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
             return;
         }
-        const mdcAddress = mdc.id;
-        const owner = mdc.owner;
+        let rule: any;
+        let mdcAddress;
+        let owner;
+        for (const mdc of mdcs) {
+            mdcAddress = mdc.id;
+            owner = mdc.owner;
+            rule = await this.getRule(owner, txData.ebcAddress, txData.ruleId);
+            if (rule?.chain0) break;
+        }
+        if (!rule?.chain0) {
+            logger.error(`nonce of rule, ${JSON.stringify(txData)}`);
+            return;
+        }
+        logger.info(`mdcAddress: ${mdcAddress}, owner: ${owner}`);
         const columnArray = await this.getColumnArray(txData.sourceTime, mdcAddress, owner);
         if (!columnArray?.dealers) {
             logger.error(`nonce of columnArray, ${JSON.stringify(txData)}`);
@@ -647,11 +667,6 @@ export class ArbitrationService {
             ['address[]', 'address[]', 'uint64[]', 'address'],
             [dealers, ebcs, chainIds, ebc],
         );
-        const rule: any = await this.getRule(owner, txData.ebcAddress, txData.ruleId);
-        if (!rule?.chain0) {
-            logger.error(`nonce of rule, ${JSON.stringify(txData)}`);
-            return;
-        }
         const formatRule: any[] = [
             rule.chain0,
             rule.chain1,
@@ -708,13 +723,19 @@ export class ArbitrationService {
         logger.info(`makerSubmitProof begin sourceId: ${txData.sourceId}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
         const chainRels = await this.getChainRels();
-        const mdc = await this.getMDCAndOwnerAddress(txData.sourceMaker);
-        if (!mdc?.id || !mdc?.owner) {
+        const mdcs = await this.getMDCs(txData.sourceMaker);
+        if (!mdcs || !mdcs.length) {
             logger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
             return;
         }
-        const mdcAddress = mdc.id;
-        const owner = mdc.owner;
+        let mdcAddress;
+        let owner;
+        for (const mdc of mdcs) {
+            mdcAddress = mdc.id;
+            owner = mdc.owner;
+            if (owner) break;
+        }
+        logger.info(`mdcAddress: ${mdcAddress}, owner: ${owner}`);
         const chain = chainRels.find(c => +c.id === +txData.sourceChain);
         if (!chain) {
             logger.error(`nonce of chainRels, ${JSON.stringify(txData)}`);
