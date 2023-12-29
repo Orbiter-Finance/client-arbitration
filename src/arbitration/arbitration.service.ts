@@ -728,12 +728,18 @@ export class ArbitrationService {
             logger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
             return;
         }
+        let responseTime;
         let mdcAddress;
         let owner;
         for (const mdc of mdcs) {
             mdcAddress = mdc.id;
             owner = mdc.owner;
-            if (owner) break;
+            responseTime = await this.getResponseTime(owner, txData.ebcAddress, txData.ruleId, txData.sourceChain, txData.targetChain);
+            if (responseTime) break;
+        }
+        if (!responseTime) {
+            logger.error(`nonce of responseTime, ${JSON.stringify(txData)}`);
+            return;
         }
         logger.info(`mdcAddress: ${mdcAddress}, owner: ${owner}`);
         const chain = chainRels.find(c => +c.id === +txData.sourceChain);
@@ -748,11 +754,7 @@ export class ArbitrationService {
             [responseMakerList.map(item => ethers.BigNumber.from(item))],
         );
         const responseMakersHash = utils.keccak256(rawDatas);
-        const responseTime = await this.getResponseTime(owner, txData.ebcAddress, txData.ruleId, txData.sourceChain, txData.targetChain);
-        if (!responseTime) {
-            logger.error(`nonce of responseTime, ${JSON.stringify(txData)}`);
-            return;
-        }
+
         const destAmount = await this.getEBCValue(owner, txData.ebcAddress, txData.ruleId, txData.sourceChain, txData.targetChain, txData.sourceAmount);
         if (!destAmount) {
             logger.error(`nonce of destAmount, ${JSON.stringify(txData)}`);
