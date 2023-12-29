@@ -67,7 +67,7 @@ If you are on the maker response side, refer to the following configuration:
 
 2.The SPV client listens to the 'challenge' function to generate the proof passed to the Orbiter interface, the arbitration client (this project) gets the proof and the information required to submit the proof through the Orbiter interface and submits the proof by executing the 'verifyChallengeSource' contract function.
 
-3.Wait for clearing, if no maker responds to arbitration successfully, then get the reward. (Challenger gets 1.7*Tx Amount reward after successful arbitration, user gets 1.3*Tx Amount reward).
+3.Wait for clearing, if no maker responds to arbitration successfully, then get the reward.
 
 ### Arbitration maker-side process (arbitration/arbitrationJob.service.ts)
 

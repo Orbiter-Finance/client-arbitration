@@ -564,11 +564,11 @@ export class ArbitrationService {
         logger.info(`handleUserArbitration begin ${tx.sourceTxHash}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
         const mdc = await this.getMDCAndOwnerAddress(tx.sourceMaker);
-        if (!mdc?.mdcAddress || !mdc?.owner) {
+        if (!mdc?.id || !mdc?.owner) {
             logger.error(`none of MDC, makerAddress: ${tx.sourceMaker}`);
             return;
         }
-        const mdcAddress = mdc.mdcAddress;
+        const mdcAddress = mdc.id;
         const owner = mdc.owner;
         let newChallengeNodeNumber = '0x';
         for (const item of [+tx.sourceTxTime, +tx.sourceChainId, +tx.sourceTxBlockNum, +tx.sourceTxIndex]) {
@@ -628,11 +628,11 @@ export class ArbitrationService {
         }
         logger.info(`userSubmitProof begin ${txData.hash}`);
         const mdc = await this.getMDCAndOwnerAddress(txData.sourceMaker);
-        if (!mdc?.mdcAddress || !mdc?.owner) {
+        if (!mdc?.id || !mdc?.owner) {
             logger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
             return;
         }
-        const mdcAddress = mdc.mdcAddress;
+        const mdcAddress = mdc.id;
         const owner = mdc.owner;
         const columnArray = await this.getColumnArray(txData.sourceTime, mdcAddress, owner);
         if (!columnArray?.dealers) {
@@ -707,11 +707,11 @@ export class ArbitrationService {
         const ifa = new ethers.utils.Interface(MDCAbi);
         const chainRels = await this.getChainRels();
         const mdc = await this.getMDCAndOwnerAddress(txData.sourceMaker);
-        if (!mdc?.mdcAddress || !mdc?.owner) {
+        if (!mdc?.id || !mdc?.owner) {
             logger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
             return;
         }
-        const mdcAddress = mdc.mdcAddress;
+        const mdcAddress = mdc.id;
         const owner = mdc.owner;
         const chain = chainRels.find(c => +c.id === +txData.sourceChain);
         if (!chain) {
