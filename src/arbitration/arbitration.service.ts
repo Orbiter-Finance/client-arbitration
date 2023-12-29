@@ -236,11 +236,12 @@ export class ArbitrationService {
         return null;
     }
 
-    async getResponseMakerList(sourceTime: string) {
+    async getResponseMakerList(mdcAddress: string, sourceTime: string) {
         const queryStr = `
             {
               mdcs (
                 where:{
+                  id: "${mdcAddress.toLowerCase()}"
                   responseMakersSnapshot_:{
                   enableTimestamp_lt:"${sourceTime}"
               }}){
@@ -253,12 +254,12 @@ export class ArbitrationService {
         const result = await this.querySubgraph(queryStr);
         const mdcs = result?.data?.mdcs;
         if (mdcs) {
-            for(const mdc of mdcs){
+            for (const mdc of mdcs) {
                 const responseMakersSnapshots = mdc?.responseMakersSnapshot;
-                if(responseMakersSnapshots){
-                    for(const responseMakersSnapshot of responseMakersSnapshots){
+                if (responseMakersSnapshots) {
+                    for (const responseMakersSnapshot of responseMakersSnapshots) {
                         const responseMakerList = responseMakersSnapshot?.responseMakerList;
-                        if(responseMakerList && responseMakerList.length){
+                        if (responseMakerList && responseMakerList.length) {
                             return responseMakerList;
                         }
                     }
@@ -747,7 +748,7 @@ export class ArbitrationService {
             logger.error(`nonce of chainRels, ${JSON.stringify(txData)}`);
             return;
         }
-        const responseMakerList = await this.getResponseMakerList(txData.sourceTime);
+        const responseMakerList = await this.getResponseMakerList(mdcAddress, txData.sourceTime);
         logger.debug('responseMakerList', responseMakerList);
         const rawDatas = utils.defaultAbiCoder.encode(
             ['uint256[]'],
