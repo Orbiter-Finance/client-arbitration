@@ -87,7 +87,7 @@ export class ArbitrationJobService {
     }
 
     // userArbitrationJob
-    @Interval(1000 * 100)
+    @Interval(1000 * 30)
     getListOfUnrefundedTransactions() {
         if (!arbitrationConfig.privateKey) {
             return;

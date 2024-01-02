@@ -8,7 +8,7 @@ import {
     VerifyChallengeDestParams,
     VerifyChallengeSourceParams,
 } from './arbitration.interface';
-import { HTTPPost } from '../utils';
+import { HTTPGet, HTTPPost } from '../utils';
 import Keyv from 'keyv';
 import BigNumber from 'bignumber.js';
 import logger from '../utils/logger';
@@ -659,6 +659,22 @@ export class ArbitrationService {
             logger.info(`challenges already exist`);
             return;
         }
+        const account = await this.getWallet();
+        const challenger = account.address;
+        try {
+            const res: any = await HTTPGet(`${arbitrationConfig.makerApiEndpoint}/transaction/challenge/${tx.sourceTxHash}`);
+            if (res?.data) {
+                logger.info(`a submission challenge record already exists for this transaction, please try again later. ${JSON.stringify(res.data)}`);
+                return;
+            }
+            await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/challenge`, {
+                sourceTxHash: tx.sourceTxHash,
+                challenger,
+            });
+        } catch (e) {
+            logger.error('submit challenge api error', e);
+        }
+
         // Obtaining arbitration deposit
         const encodeData = [
             +tx.sourceTxTime,
@@ -677,8 +693,6 @@ export class ArbitrationService {
             tx.freezeToken === '0x0000000000000000000000000000000000000000' ?
             ethers.BigNumber.from(new BigNumber(freezeAmount).plus(tx.minChallengeDepositAmount || 0).toString()) :
             ethers.BigNumber.from(0);
-        const account = await this.getWallet();
-        const challenger = account.address;
         logger.debug(`challenger: ${challenger}`);
         const response = await this.send(mdcAddress, sendValue, data);
         logger.debug(`handleUserArbitration tx: ${JSON.stringify(response)}`);
