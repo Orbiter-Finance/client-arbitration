@@ -664,6 +664,7 @@ export class ArbitrationService {
         try {
             const res: any = await HTTPGet(`${arbitrationConfig.makerApiEndpoint}/transaction/challenge/${tx.sourceTxHash}`);
             if (res?.data) {
+                await arbitrationJsonDb.delete(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`);
                 logger.info(`a submission challenge record already exists for this transaction, please try again later. ${JSON.stringify(res.data)}`);
                 return;
             }
