@@ -97,6 +97,9 @@ export class ArbitrationJobService {
         if (arbitrationConfig.makerList) {
             return;
         }
+        if (!arbitrationConfig.watchWalletList) {
+            return;
+        }
         if (mutex.isLocked()) {
             return;
         }
@@ -107,8 +110,18 @@ export class ArbitrationJobService {
                 const res: any = await HTTPGet(url);
                 if (res?.data) {
                     const list: ArbitrationTransaction[] = res.data;
-                    logger.debug(`${url} unreimbursedTransactions count ${list.length}`);
-                    for (const item of list) {
+                    const walletArbitrationTxList = [];
+                    if (arbitrationConfig.watchWalletList !== ['*']) {
+                        for (const data of list) {
+                            if (arbitrationConfig.watchWalletList.find(item => item.toLowerCase() === data?.sourceAddress?.toLowerCase())) {
+                                walletArbitrationTxList.push(data);
+                            }
+                        }
+                    } else {
+                        walletArbitrationTxList.push(...list);
+                    }
+                    logger.debug(`${url} api tx count ${list.length}, wallet tx count ${walletArbitrationTxList.length}`);
+                    for (const item of walletArbitrationTxList) {
                         const result = await this.arbitrationService.verifyArbitrationConditions(item);
                         if (result) {
                             const data = await this.arbitrationService.getJSONDBData(`/arbitrationHash/${item.sourceTxHash.toLowerCase()}`);

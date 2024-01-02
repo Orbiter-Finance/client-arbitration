@@ -4,7 +4,8 @@ import { Mutex } from 'async-mutex';
 
 export let arbitrationConfig: {
     privateKey?: string, secretKey?: string, rpc?: string, debug?: number,
-    makerApiEndpoint?: string, subgraphEndpoint?: string, makerList?: string[],
+    makerApiEndpoint?: string, subgraphEndpoint?: string,
+    makerList?: string[], watchWalletList?: string[],
     gasLimit?: string, maxFeePerGas?: string, maxPriorityFeePerGas?: string,
     liquidatePrivateKey?: string
 } = {};

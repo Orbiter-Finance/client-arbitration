@@ -36,7 +36,8 @@ If you are on the arbitration client side, refer to the following configuration:
         "makerApiEndpoint": "https://openapi.orbiter.finance/maker-openapi",
         "gasLimit": "",
         "maxFeePerGas": "",
-        "maxPriorityFeePerGas": ""
+        "maxPriorityFeePerGas": "",
+        "watchWalletList": ["*"]
     }'
    ```
 

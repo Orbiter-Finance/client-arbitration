@@ -12,7 +12,7 @@ export class AppService {
     }
 
     async setConfig(configParams: any) {
-        const { privateKey, secretKey, rpc, debug, makerApiEndpoint, makerList, gasLimit, maxFeePerGas, maxPriorityFeePerGas, liquidatePrivateKey } = configParams;
+        const { privateKey, secretKey, rpc, debug, makerApiEndpoint, makerList, watchWalletList, gasLimit, maxFeePerGas, maxPriorityFeePerGas, liquidatePrivateKey } = configParams;
         if (rpc) {
             try {
                 const provider = new providers.JsonRpcProvider({
@@ -61,6 +61,9 @@ export class AppService {
         }
         if (makerList) {
             arbitrationConfig.makerList = makerList;
+        }
+        if (watchWalletList) {
+            arbitrationConfig.watchWalletList = watchWalletList;
         }
         if (gasLimit) {
             arbitrationConfig.gasLimit = gasLimit;

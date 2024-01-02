@@ -19,7 +19,8 @@ async function bootstrap() {
         "makerApiEndpoint": "https://openapi.orbiter.finance/maker-openapi",
         "gasLimit": "",
         "maxFeePerGas": "",
-        "maxPriorityFeePerGas": ""
+        "maxPriorityFeePerGas": "",
+        "watchWalletList": ["*"]
     }'`);
 }
 bootstrap();
