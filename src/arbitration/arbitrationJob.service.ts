@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Cron, Interval } from '@nestjs/schedule';
+import { Interval } from '@nestjs/schedule';
 import { ArbitrationService } from './arbitration.service';
 import { ArbitrationTransaction } from './arbitration.interface';
 import { HTTPGet, HTTPPost } from '../utils';
@@ -8,7 +8,6 @@ import { arbitrationConfig, arbitrationJsonDb, mutex } from '../utils/config';
 
 let startTime = new Date().valueOf();
 
-// arbitration-client
 @Injectable()
 export class ArbitrationJobService {
     constructor(private arbitrationService: ArbitrationService) {
@@ -87,9 +86,8 @@ export class ArbitrationJobService {
         });
     }
 
-    @Cron('*/30 * * * * *', {
-        name: 'userArbitrationJob',
-    })
+    // userArbitrationJob
+    @Interval(1000 * 30)
     getListOfUnrefundedTransactions() {
         if (!arbitrationConfig.privateKey) {
             return;
@@ -149,9 +147,8 @@ export class ArbitrationJobService {
         });
     }
 
-    @Cron('*/30 * * * * *', {
-        name: 'makerArbitrationJob',
-    })
+    // makerArbitrationJob
+    @Interval(1000 * 30)
     getListOfUnresponsiveTransactions() {
         if (!arbitrationConfig.privateKey) {
             return;

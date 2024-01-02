@@ -133,6 +133,50 @@ export class ArbitrationService {
         return result?.data?.createChallenges?.[0]?.challengeNodeNumber;
     }
 
+    async checkDuplicationChallenge(
+        sourceTxHash: string,
+        sourceTxTime: any,
+        sourceChainId: any,
+        sourceTxBlockNum: any,
+        sourceTxIndex: any,
+        ruleKey: any,
+        freezeToken: any,
+    ) {
+        const queryStr = `
+        {
+          createChallenges(
+            where: {
+                sourceTxHash: "${sourceTxHash.toLowerCase()}"
+            },orderBy: challengeNodeNumber, orderDirection: asc) {
+                sourceTxTime       
+                sourceChainId
+                sourceTxBlockNum
+                sourceTxIndex
+                sourceTxHash
+                ruleKey
+                freezeToken
+          }
+        }
+          `;
+        const result = await this.querySubgraph(queryStr);
+        const challenges = result?.data?.createChallenges;
+        if (challenges && challenges.length) {
+            for (const challenge of challenges) {
+                if (String(challenge.sourceTxTime) === String(sourceTxTime) &&
+                    String(challenge.sourceChainId) === String(sourceChainId) &&
+                    String(challenge.sourceTxBlockNum) === String(sourceTxBlockNum) &&
+                    String(challenge.sourceTxIndex) === String(sourceTxIndex) &&
+                    String(challenge.sourceTxHash).toLowerCase() === String(sourceTxHash).toLowerCase() &&
+                    String(challenge.ruleKey).toLowerCase() === String(ruleKey).toLowerCase() &&
+                    String(challenge.freezeToken).toLowerCase() === String(freezeToken).toLowerCase()
+                ) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     async getRule(owner: string, ebcAddress: string, ruleId: string): Promise<{
         chain0,
         chain0CompensationRatio,
@@ -605,6 +649,14 @@ export class ArbitrationService {
         logger.info(`mdcAddress: ${mdcAddress}, mdcBalance: ${new BigNumber(String(mdcBalance)).div(10 ** 18).toFixed(6)}, owner: ${owner}, parentNodeNumOfTargetNode: ${parentNodeNumOfTargetNode}`);
         if (new BigNumber(String(mdcBalance)).lt(freezeAmount)) {
             logger.error(`MDC ${mdcAddress} Insufficient Balance: ${String(mdcBalance)} < ${String(freezeAmount)}`);
+            return;
+        }
+        if (!await this.checkDuplicationChallenge(tx.sourceTxHash, tx.sourceTxTime, tx.sourceChainId, tx.sourceTxBlockNum, tx.sourceTxIndex, ruleKey, tx.freezeToken)) {
+            await arbitrationJsonDb.push(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`, {
+                isChallengesExist: 1,
+                isNeedProof: 0,
+            });
+            logger.info(`challenges already exist`);
             return;
         }
         // Obtaining arbitration deposit
