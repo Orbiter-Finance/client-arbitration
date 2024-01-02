@@ -20,11 +20,11 @@ export class AppController {
     }
 
     @Post('/liquidate')
-    liquidate(@Body() data: any) {
+    async liquidate(@Body() data: any) {
         if (!data?.hash) {
             return { code: 1, message: 'Invalid parameters' };
         }
-        return this.appService.liquidate(data.hash);
+        return await this.appService.liquidate(data.hash);
     }
 
     @Post('/retry_proof')
