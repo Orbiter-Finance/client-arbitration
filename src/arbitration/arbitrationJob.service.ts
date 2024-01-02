@@ -98,6 +98,7 @@ export class ArbitrationJobService {
             return;
         }
         if (!arbitrationConfig.watchWalletList) {
+            logger.info(`the watch wallet list not configured`);
             return;
         }
         if (mutex.isLocked()) {
@@ -111,7 +112,7 @@ export class ArbitrationJobService {
                 if (res?.data) {
                     const list: ArbitrationTransaction[] = res.data;
                     const walletArbitrationTxList = [];
-                    if (arbitrationConfig.watchWalletList !== ['*']) {
+                    if (!arbitrationConfig.watchWalletList.find(item => item === '*')) {
                         for (const data of list) {
                             if (arbitrationConfig.watchWalletList.find(item => item.toLowerCase() === data?.sourceAddress?.toLowerCase())) {
                                 walletArbitrationTxList.push(data);
