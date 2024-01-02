@@ -595,9 +595,18 @@ export class ArbitrationService {
         logger.debug("newChallengeNodeNumber", newChallengeNodeNumber);
         const parentNodeNumOfTargetNode = await this.getChallengeNodeNumber(mdcAddress, newChallengeNodeNumber);
         logger.debug('parentNodeNumOfTargetNode', parentNodeNumOfTargetNode);
-        logger.info(`mdcAddress: ${mdcAddress}, owner: ${owner}, parentNodeNumOfTargetNode: ${parentNodeNumOfTargetNode}`);
 
         const freezeAmount = new BigNumber(tx.freezeAmount1).multipliedBy(2).toFixed(0);
+
+        const provider = new providers.JsonRpcProvider({
+            url: arbitrationConfig.rpc,
+        });
+        const mdcBalance = await provider.getBalance(mdcAddress);
+        logger.info(`mdcAddress: ${mdcAddress}, mdcBalance: ${(+mdcBalance.div(10 ** 18)).toFixed(6)}, owner: ${owner}, parentNodeNumOfTargetNode: ${parentNodeNumOfTargetNode}`);
+        if (new BigNumber(String(mdcBalance)).lt(freezeAmount)) {
+            logger.error(`MDC ${mdcAddress} Insufficient Balance: ${String(mdcBalance)} < ${String(freezeAmount)}`);
+            return;
+        }
         // Obtaining arbitration deposit
         const encodeData = [
             +tx.sourceTxTime,
