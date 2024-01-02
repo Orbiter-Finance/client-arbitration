@@ -602,7 +602,7 @@ export class ArbitrationService {
             url: arbitrationConfig.rpc,
         });
         const mdcBalance = await provider.getBalance(mdcAddress);
-        logger.info(`mdcAddress: ${mdcAddress}, mdcBalance: ${(+mdcBalance.div(10 ** 18)).toFixed(6)}, owner: ${owner}, parentNodeNumOfTargetNode: ${parentNodeNumOfTargetNode}`);
+        logger.info(`mdcAddress: ${mdcAddress}, mdcBalance: ${new BigNumber(String(mdcBalance)).div(10 ** 18).toFixed(6)}, owner: ${owner}, parentNodeNumOfTargetNode: ${parentNodeNumOfTargetNode}`);
         if (new BigNumber(String(mdcBalance)).lt(freezeAmount)) {
             logger.error(`MDC ${mdcAddress} Insufficient Balance: ${String(mdcBalance)} < ${String(freezeAmount)}`);
             return;

@@ -120,7 +120,7 @@ export class ArbitrationJobService {
                             try {
                                 await this.arbitrationService.handleUserArbitration(item);
                             } catch (error) {
-                                logger.error('Arbitration encountered an exception', item, error);
+                                logger.error(`Arbitration encountered an exception: ${JSON.stringify(item)}`, error);
                             }
                             await new Promise(resolve => setTimeout(resolve, 3000));
                         } else {
