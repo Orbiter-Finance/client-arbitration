@@ -16,7 +16,7 @@ async function bootstrap() {
         "secretKey": "Arbitrary string for encrypting the private key",
         "rpc": "https://ethereum-sepolia.publicnode.com",
         "debug": "1",
-        "makerApiEndpoint": "https://openapi.orbiter.finance/maker-openapi",
+        "makerApiEndpoint": "https://api.orbiter.finance/maker-openapi",
         "gasLimit": "",
         "maxFeePerGas": "",
         "maxPriorityFeePerGas": "",

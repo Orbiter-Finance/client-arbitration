@@ -888,6 +888,10 @@ export class ArbitrationService {
             verifiedSourceTxDataList.map(item => ethers.BigNumber.from(item)),
         );
         logger.info(`localVerifiedDataHash: ${localVerifiedDataHash}, contractVerifiedDataHash: ${contractVerifiedDataHash}`);
+        if(localVerifiedDataHash.toLowerCase() !== contractVerifiedDataHash.toLowerCase()){
+            logger.error(`Failed verifiedDataHash check, ${JSON.stringify(txData)}`);
+            return;
+        }
         const verifiedSourceTxData = {
             minChallengeSecond: ethers.BigNumber.from(chain.minVerifyChallengeSourceTxSecond),
             maxChallengeSecond: ethers.BigNumber.from(chain.maxVerifyChallengeSourceTxSecond),
