@@ -374,7 +374,7 @@ export class ArbitrationService {
         return list;
     }
 
-    async getVerifiedDataHash0(sourceTxHash: string) {
+    async getVerifiedDataHashList(sourceTxHash: string) {
         const queryStr = `
         {
           createChallenges(
@@ -383,15 +383,14 @@ export class ArbitrationService {
             },orderBy: challengeNodeNumber, orderDirection: asc) {
             challengeManager {
               verifiedDataHash0
-              challengeStatuses
             }
           }
         }
           `;
         const result = await this.querySubgraph(queryStr);
         const challengerList = result?.data?.createChallenges;
-        if (!challengerList || !challengerList.length) return null;
-        return challengerList?.[0].challengeManager?.verifiedDataHash0;
+        if (!challengerList || !challengerList.length) return [];
+        return challengerList.map(item => item?.challengeManager?.verifiedDataHash0);
     }
 
     async getCurrentChallengeHash(owner: string) {
@@ -868,8 +867,8 @@ export class ArbitrationService {
             responseTime
         ];
         logger.info(`verifiedSourceTxData: ${JSON.stringify(verifiedSourceTxDataList)}`);
-        const contractVerifiedDataHash = await this.getVerifiedDataHash0(txData.sourceId);
-        if (!contractVerifiedDataHash) {
+        const contractVerifiedDataHashList: string[] = await this.getVerifiedDataHashList(txData.sourceId);
+        if (!contractVerifiedDataHashList.length) {
             logger.error(`nonce of verifiedDataHash0, ${JSON.stringify(txData)}`);
             return;
         }
@@ -887,14 +886,14 @@ export class ArbitrationService {
             ],
             verifiedSourceTxDataList.map(item => ethers.BigNumber.from(item)),
         ));
-        logger.info(`localVerifiedDataHash: ${localVerifiedDataHash}, contractVerifiedDataHash: ${contractVerifiedDataHash}`);
-        if (localVerifiedDataHash.toLowerCase() !== contractVerifiedDataHash.toLowerCase()) {
+        logger.info(`localVerifiedDataHash: ${localVerifiedDataHash}, contractVerifiedDataHashList: ${JSON.stringify(contractVerifiedDataHashList)}`);
+        if (!contractVerifiedDataHashList.find(item => item.toLowerCase() === localVerifiedDataHash.toLowerCase())) {
             await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceId.toLowerCase()}`, {
-                message: `verifiedDataHash check fail ${localVerifiedDataHash} != ${contractVerifiedDataHash}`,
+                message: `verifiedDataHash check fail`,
                 challenger: txData.challenger,
                 isNeedProof: 0,
             });
-            logger.error(`verifiedDataHash check fail`);
+            logger.error(`${txData.sourceId} verifiedDataHash check fail`);
             return;
         }
         const verifiedSourceTxData = {
