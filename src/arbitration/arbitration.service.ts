@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { JsonDB, Config } from 'node-json-db';
 import { utils, providers, ethers } from 'ethers';
 import MDCAbi from '../abi/MDC.abi.json';
 import EBCAbi from '../abi/EBC.abi.json';
@@ -373,6 +372,26 @@ export class ArbitrationService {
             list.push({ verifyPassChallenger, sourceTxHash });
         }
         return list;
+    }
+
+    async getVerifiedDataHash0(sourceTxHash: string) {
+        const queryStr = `
+        {
+          createChallenges(
+            where: {
+              sourceTxHash:"${sourceTxHash.toLowerCase()}"
+            },orderBy: challengeNodeNumber, orderDirection: asc) {
+            challengeManager {
+              verifiedDataHash0
+              challengeStatuses
+            }
+          }
+        }
+          `;
+        const result = await this.querySubgraph(queryStr);
+        const challengerList = result?.data?.createChallenges;
+        if (!challengerList || !challengerList.length) return null;
+        return challengerList?.[0].challengeManager?.verifiedDataHash0;
     }
 
     async getCurrentChallengeHash(owner: string) {
@@ -837,7 +856,7 @@ export class ArbitrationService {
             logger.error(`nonce of destAmount, ${JSON.stringify(txData)}`);
             return;
         }
-        logger.info('verifiedSourceTxData',
+        const verifiedSourceTxDataList = [
             chain.minVerifyChallengeSourceTxSecond,
             chain.maxVerifyChallengeSourceTxSecond,
             txData.sourceNonce,
@@ -846,7 +865,29 @@ export class ArbitrationService {
             txData.targetToken,
             destAmount,
             responseMakersHash,
-            responseTime);
+            responseTime
+        ];
+        logger.info(`verifiedSourceTxData: ${JSON.stringify(verifiedSourceTxDataList)}`);
+        const contractVerifiedDataHash = await this.getVerifiedDataHash0(txData.sourceId);
+        if (!contractVerifiedDataHash) {
+            logger.error(`nonce of verifiedDataHash0, ${JSON.stringify(txData)}`);
+            return;
+        }
+        const localVerifiedDataHash = utils.defaultAbiCoder.encode(
+            [
+                'uint256',
+                'uint256',
+                'uint256',
+                'uint256',
+                'uint256',
+                'uint256',
+                'uint256',
+                'uint256',
+                'uint256',
+            ],
+            verifiedSourceTxDataList.map(item => ethers.BigNumber.from(item)),
+        );
+        logger.info(`localVerifiedDataHash: ${localVerifiedDataHash}, contractVerifiedDataHash: ${contractVerifiedDataHash}`);
         const verifiedSourceTxData = {
             minChallengeSecond: ethers.BigNumber.from(chain.minVerifyChallengeSourceTxSecond),
             maxChallengeSecond: ethers.BigNumber.from(chain.maxVerifyChallengeSourceTxSecond),
