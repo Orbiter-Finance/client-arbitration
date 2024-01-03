@@ -178,15 +178,18 @@ export class ArbitrationJobService {
                             logger.debug(`${hash} status ${txStatusRes?.data}`);
                             continue;
                         }
-                        const res = await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/proof/makerAskProof`, {
+                        const res: any = await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/proof/makerAskProof`, {
                             hash,
                         });
-                        logger.info('maker request ask', JSON.stringify(res));
-                        await arbitrationJsonDb.push(`/arbitrationHash/${hash}`, {
-                            isNeedProof: 1,
-                            challenger: challengerData.verifyPassChallenger,
-                        });
-                        logger.info(`maker ask proof ${hash}`);
+                        if (+res.errno === 0) {
+                            await arbitrationJsonDb.push(`/arbitrationHash/${hash}`, {
+                                isNeedProof: 1,
+                                challenger: challengerData.verifyPassChallenger,
+                            });
+                            logger.info(`maker ask proof ${hash}`);
+                        } else {
+                            logger.error('maker request ask error', res.errmsg);
+                        }
                         await new Promise(resolve => setTimeout(resolve, 3000));
                     }
                 }
