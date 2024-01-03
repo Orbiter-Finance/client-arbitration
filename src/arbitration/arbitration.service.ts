@@ -656,7 +656,7 @@ export class ArbitrationService {
                 isChallengesExist: 1,
                 isNeedProof: 0,
             });
-            logger.info(`challenges already exist`);
+            logger.info(`${tx.sourceTxHash} challenges already exist`);
             return;
         }
         const account = await this.getWallet();
@@ -688,13 +688,13 @@ export class ArbitrationService {
             ethers.BigNumber.from(freezeAmount),
             ethers.BigNumber.from(parentNodeNumOfTargetNode || 0),
         ];
-        logger.debug(`encodeData: ${JSON.stringify(encodeData)}`);
+        logger.info(`encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('challenge', encodeData);
         const sendValue =
             tx.freezeToken === '0x0000000000000000000000000000000000000000' ?
             ethers.BigNumber.from(new BigNumber(freezeAmount).plus(tx.minChallengeDepositAmount || 0).toString()) :
             ethers.BigNumber.from(0);
-        logger.debug(`challenger: ${challenger}`);
+        logger.info(`challenger: ${challenger}, sendValue: ${String(sendValue)}`);
         const response = await this.send(mdcAddress, sendValue, data);
         logger.debug(`handleUserArbitration tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`, {
@@ -764,7 +764,7 @@ export class ArbitrationService {
             rule.chain0CompensationRatio,
             rule.chain1CompensationRatio,
         ];
-        logger.debug(`formatRule: ${JSON.stringify(formatRule)}`);
+        logger.info(`formatRule: ${JSON.stringify(formatRule)}`);
         const rlpRuleBytes = utils.RLP.encode(
             formatRule.map((r) => utils.stripZeros(ethers.BigNumber.from(r).toHexString())),
         );
@@ -778,7 +778,7 @@ export class ArbitrationService {
             rawDatas,
             rlpRuleBytes
         ];
-        logger.debug(`encodeData: ${JSON.stringify(encodeData)}`);
+        logger.info(`encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('verifyChallengeSource', encodeData);
         const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
         logger.debug(`UserSubmitProof tx: ${JSON.stringify(response)}`);
@@ -837,7 +837,7 @@ export class ArbitrationService {
             logger.error(`nonce of destAmount, ${JSON.stringify(txData)}`);
             return;
         }
-        logger.debug('verifiedSourceTxData',
+        logger.info('verifiedSourceTxData',
             chain.minVerifyChallengeSourceTxSecond,
             chain.maxVerifyChallengeSourceTxSecond,
             txData.sourceNonce,
@@ -867,7 +867,7 @@ export class ArbitrationService {
             verifiedSourceTxData,
             rawDatas,
         ];
-        logger.debug(`encodeData: ${JSON.stringify(encodeData)}`);
+        logger.info(`encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('verifyChallengeDest', encodeData);
         const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
         logger.debug(`MakerSubmitProof tx: ${JSON.stringify(response)}`);
@@ -891,7 +891,7 @@ export class ArbitrationService {
             txData.sourceTxHash,
             [txData.challenger],
         ];
-        logger.debug(`encodeData: ${JSON.stringify(encodeData)}`);
+        logger.info(`encodeData: ${JSON.stringify(encodeData)}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
         const data = ifa.encodeFunctionData('checkChallenge', encodeData);
         const response = await this.send(txData.mdcAddress, ethers.BigNumber.from(0), data, await this.getWallet(arbitrationConfig.liquidatePrivateKey));
