@@ -873,7 +873,7 @@ export class ArbitrationService {
             logger.error(`nonce of verifiedDataHash0, ${JSON.stringify(txData)}`);
             return;
         }
-        const localVerifiedDataHash = utils.defaultAbiCoder.encode(
+        const localVerifiedDataHash = utils.keccak256(utils.defaultAbiCoder.encode(
             [
                 'uint256',
                 'uint256',
@@ -886,10 +886,15 @@ export class ArbitrationService {
                 'uint256',
             ],
             verifiedSourceTxDataList.map(item => ethers.BigNumber.from(item)),
-        );
+        ));
         logger.info(`localVerifiedDataHash: ${localVerifiedDataHash}, contractVerifiedDataHash: ${contractVerifiedDataHash}`);
-        if(localVerifiedDataHash.toLowerCase() !== contractVerifiedDataHash.toLowerCase()){
-            logger.error(`Failed verifiedDataHash check, ${JSON.stringify(txData)}`);
+        if (localVerifiedDataHash.toLowerCase() !== contractVerifiedDataHash.toLowerCase()) {
+            await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceId.toLowerCase()}`, {
+                message: `verifiedDataHash check fail ${localVerifiedDataHash} != ${contractVerifiedDataHash}`,
+                challenger: txData.challenger,
+                isNeedProof: 0,
+            });
+            logger.error(`verifiedDataHash check fail`);
             return;
         }
         const verifiedSourceTxData = {
@@ -916,7 +921,7 @@ export class ArbitrationService {
         const data = ifa.encodeFunctionData('verifyChallengeDest', encodeData);
         const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
         logger.debug(`MakerSubmitProof tx: ${JSON.stringify(response)}`);
-        await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceId}`, {
+        await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceId.toLowerCase()}`, {
             verifyChallengeDestHash: response.hash,
             challenger: txData.challenger,
             isNeedProof: 0
