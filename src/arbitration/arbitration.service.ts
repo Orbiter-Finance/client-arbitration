@@ -713,6 +713,10 @@ export class ArbitrationService {
             ethers.BigNumber.from(new BigNumber(freezeAmount).plus(tx.minChallengeDepositAmount || 0).toString()) :
             ethers.BigNumber.from(0);
         logger.info(`challenger: ${challenger}, sendValue: ${String(sendValue)}`);
+        await arbitrationJsonDb.push(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`, {
+            message: 'Preparing challenge',
+            isNeedProof: 0,
+        });
         const response = await this.send(mdcAddress, sendValue, data);
         logger.debug(`handleUserArbitration tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`, {
@@ -798,6 +802,12 @@ export class ArbitrationService {
         ];
         logger.info(`verifyChallengeSource encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('verifyChallengeSource', encodeData);
+        await arbitrationJsonDb.push(`/arbitrationHash/${txData.hash}`, {
+            message: 'Preparing verifyChallengeSource',
+            challenger: txData.challenger,
+            submitSourceTxHash: txData.submitSourceTxHash,
+            isNeedProof: 0
+        });
         const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
         logger.debug(`userSubmitProof tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.hash}`, {
@@ -918,6 +928,11 @@ export class ArbitrationService {
         ];
         logger.info(`verifyChallengeDest encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('verifyChallengeDest', encodeData);
+        await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceId.toLowerCase()}`, {
+            message: 'Preparing verifyChallengeDest',
+            challenger: txData.challenger,
+            isNeedProof: 0
+        });
         const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
         logger.debug(`makerSubmitProof tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceId.toLowerCase()}`, {

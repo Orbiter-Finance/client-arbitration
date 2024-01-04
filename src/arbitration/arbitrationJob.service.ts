@@ -128,7 +128,6 @@ export class ArbitrationJobService {
                                 logger.debug(`${item.sourceTxHash.toLowerCase()} exist`);
                                 continue;
                             }
-                            await arbitrationJsonDb.push(`/arbitrationHash/${item.sourceTxHash.toLowerCase()}`, { isNeedProof: 0 });
                             try {
                                 await this.arbitrationService.handleUserArbitration(item);
                             } catch (error) {
