@@ -122,8 +122,8 @@ export class AppService {
                         for (const owner of arbitrationConfig.makerList) {
                             const checkChallengeParamsList: CheckChallengeParams[] = await this.arbitrationService.getCheckChallengeParams(owner);
                             if (checkChallengeParamsList) {
-                                const checkChallengeParams = checkChallengeParamsList.find(item => item.sourceTxHash.toLowerCase() === hash.toLowerCase());
-                                if (checkChallengeParams) {
+                                const checkChallengeParams = checkChallengeParamsList.filter(item => item.sourceTxHash.toLowerCase() === hash.toLowerCase());
+                                if (checkChallengeParams && checkChallengeParams.length) {
                                     resolve({
                                         code: 0,
                                         result: await this.arbitrationService.checkChallenge(checkChallengeParams),

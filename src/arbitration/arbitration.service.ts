@@ -444,6 +444,7 @@ export class ArbitrationService {
                     freezeToken
                     challenger
                     createChallengeTimestamp
+                    liquidationHash
                     challengeManager {
                       owner
                       challengeStatuses
@@ -459,7 +460,7 @@ export class ArbitrationService {
         }
         const list = [];
         for (const challenger of challengerList) {
-            if (challenger?.challengeManager?.challengeStatuses !== 'LIQUIDATION') {
+            if (challenger?.liquidationHash === 'EMPTY') {
                 list.push({ ...challenger, mdcAddress: challenger.challengeManager.mdcAddr });
             }
         }
@@ -944,24 +945,28 @@ export class ArbitrationService {
         return response as any;
     }
 
-    async checkChallenge(txData: CheckChallengeParams) {
+    async checkChallenge(txDataList: CheckChallengeParams[]) {
         if (!arbitrationConfig.liquidatePrivateKey) {
             logger.error('liquidatePrivateKey key not injected');
             return { message: 'liquidatePrivateKey key not injected' };
         }
-        logger.info(`checkChallenge begin: ${JSON.stringify(txData)}`);
+        const mdcAddress = txDataList[0].mdcAddress;
+        const sourceChainId = txDataList[0].sourceChainId;
+        const sourceTxHash = txDataList[0].sourceTxHash;
+        const challengerList = txDataList.map(item => item.challenger);
+        logger.info(`checkChallenge begin: ${sourceTxHash}`);
         const encodeData = [
-            txData.sourceChainId,
-            txData.sourceTxHash,
-            [txData.challenger],
+            sourceChainId,
+            sourceTxHash,
+            challengerList,
         ];
         logger.info(`checkChallenge encodeData: ${JSON.stringify(encodeData)}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
         const data = ifa.encodeFunctionData('checkChallenge', encodeData);
-        const response = await this.send(txData.mdcAddress, ethers.BigNumber.from(0), data, await this.getWallet(arbitrationConfig.liquidatePrivateKey));
+        const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data, await this.getWallet(arbitrationConfig.liquidatePrivateKey));
         logger.debug(`CheckChallenge tx: ${JSON.stringify(response)}`);
-        await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceTxHash.toLowerCase()}`, {
-            challenger: txData.challenger,
+        await arbitrationJsonDb.push(`/arbitrationHash/${sourceTxHash.toLowerCase()}`, {
+            challenger: challengerList,
             checkChallengeHash: response.hash,
             isNeedProof: 0
         });
