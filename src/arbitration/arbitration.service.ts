@@ -67,7 +67,7 @@ export class ArbitrationService {
                     owner:"${makerAddress.toLowerCase()}"
                   },
                   {
-                    responseMaker_:{
+                    responseMakersSnapshot_:{
                         id:"${makerAddress.toLowerCase()}"
                     }
                   }
@@ -706,7 +706,7 @@ export class ArbitrationService {
             ethers.BigNumber.from(freezeAmount),
             ethers.BigNumber.from(parentNodeNumOfTargetNode || 0),
         ];
-        logger.info(`encodeData: ${JSON.stringify(encodeData)}`);
+        logger.info(`challenge encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('challenge', encodeData);
         const sendValue =
             tx.freezeToken === '0x0000000000000000000000000000000000000000' ?
@@ -796,10 +796,10 @@ export class ArbitrationService {
             rawDatas,
             rlpRuleBytes
         ];
-        logger.info(`encodeData: ${JSON.stringify(encodeData)}`);
+        logger.info(`verifyChallengeSource encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('verifyChallengeSource', encodeData);
         const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
-        logger.debug(`UserSubmitProof tx: ${JSON.stringify(response)}`);
+        logger.debug(`userSubmitProof tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.hash}`, {
             challenger: txData.challenger,
             submitSourceTxHash: txData.submitSourceTxHash,
@@ -916,10 +916,10 @@ export class ArbitrationService {
             verifiedSourceTxData,
             rawDatas,
         ];
-        logger.info(`encodeData: ${JSON.stringify(encodeData)}`);
+        logger.info(`verifyChallengeDest encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('verifyChallengeDest', encodeData);
         const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
-        logger.debug(`MakerSubmitProof tx: ${JSON.stringify(response)}`);
+        logger.debug(`makerSubmitProof tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceId.toLowerCase()}`, {
             verifyChallengeDestHash: response.hash,
             challenger: txData.challenger,
@@ -934,13 +934,13 @@ export class ArbitrationService {
             logger.error('liquidatePrivateKey key not injected');
             return { message: 'liquidatePrivateKey key not injected' };
         }
-        logger.info(`CheckChallenge begin: ${JSON.stringify(txData)}`);
+        logger.info(`checkChallenge begin: ${JSON.stringify(txData)}`);
         const encodeData = [
             txData.sourceChainId,
             txData.sourceTxHash,
             [txData.challenger],
         ];
-        logger.info(`encodeData: ${JSON.stringify(encodeData)}`);
+        logger.info(`checkChallenge encodeData: ${JSON.stringify(encodeData)}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
         const data = ifa.encodeFunctionData('checkChallenge', encodeData);
         const response = await this.send(txData.mdcAddress, ethers.BigNumber.from(0), data, await this.getWallet(arbitrationConfig.liquidatePrivateKey));
