@@ -729,6 +729,15 @@ export class ArbitrationService {
         logger.info(`handleUserArbitration send ${tx.sourceTxHash} ${response.hash}`);
         const receipt = await this.confirmTx(response.hash);
         logger.info(`handleUserArbitration success ${JSON.stringify(receipt)}`);
+        try {
+            await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
+                sourceId: tx.sourceTxHash,
+                hash: response.hash,
+                type: 11,
+            });
+        } catch (e) {
+            logger.error('record error', e);
+        }
     }
 
     async userSubmitProof(txData: VerifyChallengeSourceParams) {
@@ -818,7 +827,17 @@ export class ArbitrationService {
             isNeedProof: 0
         });
         logger.info(`userSubmitProof end ${txData.hash} ${response.hash}`);
-        return response as any;
+        const receipt = await this.confirmTx(response.hash);
+        logger.info(`userSubmitProof success ${JSON.stringify(receipt)}`);
+        try {
+            await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
+                sourceId: txData.hash,
+                hash: response.hash,
+                type: 12,
+            });
+        } catch (e) {
+            logger.error('record error', e);
+        }
     }
 
     async makerSubmitProof(txData: VerifyChallengeDestParams) {
@@ -942,7 +961,17 @@ export class ArbitrationService {
             isNeedProof: 0
         });
         logger.info(`makerSubmitProof end sourceId: ${txData.sourceId} verifyChallengeDestHash: ${response.hash}`);
-        return response as any;
+        const receipt = await this.confirmTx(response.hash);
+        logger.info(`makerSubmitProof success ${JSON.stringify(receipt)}`);
+        try {
+            await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
+                sourceId: txData.sourceId,
+                hash: response.hash,
+                type: 21,
+            });
+        } catch (e) {
+            logger.error('record error', e);
+        }
     }
 
     async checkChallenge(txDataList: CheckChallengeParams[]) {
