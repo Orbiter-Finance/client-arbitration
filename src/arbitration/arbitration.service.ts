@@ -732,8 +732,7 @@ export class ArbitrationService {
         try {
             await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
                 sourceId: tx.sourceTxHash,
-                hash: response.hash,
-                type: 11,
+                hash: response.hash
             });
         } catch (e) {
             logger.error('record error', e);
@@ -832,8 +831,7 @@ export class ArbitrationService {
         try {
             await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
                 sourceId: txData.hash,
-                hash: response.hash,
-                type: 12,
+                hash: response.hash
             });
         } catch (e) {
             logger.error('record error', e);
@@ -966,8 +964,7 @@ export class ArbitrationService {
         try {
             await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
                 sourceId: txData.sourceId,
-                hash: response.hash,
-                type: 21,
+                hash: response.hash
             });
         } catch (e) {
             logger.error('record error', e);
