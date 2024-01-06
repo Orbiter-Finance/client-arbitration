@@ -55,9 +55,7 @@ export class AppService {
                     arbitrationConfig.privateKey = privateKey;
 
                     try{
-                        await HTTPGet(`${arbitrationConfig.makerApiEndpoint}/login`, {
-                            address
-                        });
+                        await HTTPGet(`${arbitrationConfig.makerApiEndpoint}/login?address=${address}`);
                     } catch (e) {
                     }
                 } catch (e) {
