@@ -29,6 +29,19 @@ export class AppService {
             }
             arbitrationConfig.rpc = rpc;
         }
+        if (makerApiEndpoint) {
+            arbitrationConfig.makerApiEndpoint = makerApiEndpoint;
+            try {
+                const arbitrationClientConfig = await HTTPGet(`${makerApiEndpoint}/config/arbitration-client`);
+                if (arbitrationClientConfig?.data?.subgraphEndpoint) {
+                    arbitrationConfig.subgraphEndpoint = arbitrationClientConfig.data.subgraphEndpoint;
+                } else {
+                    commonLogger.error(`request fail: ${makerApiEndpoint}/config/arbitration-client`, arbitrationClientConfig);
+                }
+            } catch (e) {
+                commonLogger.error(`request fail: ${makerApiEndpoint}/config/arbitration-client`, e);
+            }
+        }
         if (privateKey) {
             if (arbitrationConfig.rpc) {
                 try {
@@ -40,6 +53,13 @@ export class AppService {
                     console.log(`Inject the ${address} wallet private key`);
                     arbitrationConfig.secretKey = secretKey ?? arbitrationConfig.secretKey;
                     arbitrationConfig.privateKey = privateKey;
+
+                    try{
+                        await HTTPGet(`${arbitrationConfig.makerApiEndpoint}/login`, {
+                            address
+                        });
+                    } catch (e) {
+                    }
                 } catch (e) {
                     return { code: 1, message: 'PrivateKey error' };
                 }
@@ -84,19 +104,6 @@ export class AppService {
         }
         if (debug) {
             arbitrationConfig.debug = +debug;
-        }
-        if (makerApiEndpoint) {
-            arbitrationConfig.makerApiEndpoint = makerApiEndpoint;
-            try {
-                const arbitrationClientConfig = await HTTPGet(`${makerApiEndpoint}/config/arbitration-client`);
-                if (arbitrationClientConfig?.data?.subgraphEndpoint) {
-                    arbitrationConfig.subgraphEndpoint = arbitrationClientConfig.data.subgraphEndpoint;
-                } else {
-                    commonLogger.error(`request fail: ${makerApiEndpoint}/config/arbitration-client`, arbitrationClientConfig);
-                }
-            } catch (e) {
-                commonLogger.error(`request fail: ${makerApiEndpoint}/config/arbitration-client`, e);
-            }
         }
         const config = JSON.parse(JSON.stringify(arbitrationConfig));
         delete config.privateKey;
