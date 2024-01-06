@@ -110,14 +110,7 @@ export class ArbitrationJobService {
         }
         mutex.runExclusive(async () => {
             try {
-                const chainRels = await this.arbitrationService.getChainRels();
-                let startTime = new Date().valueOf();
-                let endTime = 0;
-                for (const chain of chainRels) {
-                    startTime = Math.min(new Date().valueOf() - (+chain.maxVerifyChallengeSourceTxSecond) * 1000, startTime);
-                    endTime = Math.max(new Date().valueOf() - (+chain.minVerifyChallengeSourceTxSecond) * 1000, endTime);
-                }
-                const url = `${arbitrationConfig.makerApiEndpoint}/transaction/unreimbursedTransactions?startTime=${startTime}&endTime=${endTime}`;
+                const url = `${arbitrationConfig.makerApiEndpoint}/transaction/pendingArbitration`;
                 const res: any = await HTTPGet(url);
                 if (res?.data) {
                     const list: ArbitrationTransaction[] = res.data;
