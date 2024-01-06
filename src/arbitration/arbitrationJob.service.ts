@@ -6,8 +6,6 @@ import { HTTPGet, HTTPPost } from '../utils';
 import { arbitrationConfig, arbitrationJsonDb, mutex } from '../utils/config';
 import { challengerLogger, liquidatorLogger, Logger, makerLogger } from '../utils/logger';
 
-let startTime = new Date().valueOf();
-
 @Injectable()
 export class ArbitrationJobService {
     constructor(private arbitrationService: ArbitrationService) {
@@ -112,8 +110,14 @@ export class ArbitrationJobService {
         }
         mutex.runExclusive(async () => {
             try {
-                const endTime = new Date().valueOf();
-                const url = `${arbitrationConfig.makerApiEndpoint}/transaction/unreimbursedTransactions?startTime=${startTime - 1000 * 60 * 60}&endTime=${endTime}`;
+                const chainRels = await this.arbitrationService.getChainRels();
+                let startTime = new Date().valueOf();
+                let endTime = 0;
+                for (const chain of chainRels) {
+                    startTime = Math.min(new Date().valueOf() - (+chain.maxVerifyChallengeSourceTxSecond) * 1000, startTime);
+                    endTime = Math.max(new Date().valueOf() - (+chain.minVerifyChallengeSourceTxSecond) * 1000, endTime);
+                }
+                const url = `${arbitrationConfig.makerApiEndpoint}/transaction/unreimbursedTransactions?startTime=${startTime}&endTime=${endTime}`;
                 const res: any = await HTTPGet(url);
                 if (res?.data) {
                     const list: ArbitrationTransaction[] = res.data;
@@ -146,7 +150,6 @@ export class ArbitrationJobService {
                             challengerLogger.debug(`verifyArbitrationConditions fail ${JSON.stringify(item)}`);
                         }
                     }
-                    startTime = endTime;
                 }
             } catch (e) {
                 console.error('userArbitrationJob error', e);
