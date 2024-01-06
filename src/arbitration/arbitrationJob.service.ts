@@ -1,16 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { ArbitrationService } from './arbitration.service';
-import { ArbitrationTransaction } from './arbitration.interface';
+import { ArbitrationTransaction, CheckChallengeParams } from './arbitration.interface';
 import { HTTPGet, HTTPPost } from '../utils';
-import logger from '../utils/logger';
 import { arbitrationConfig, arbitrationJsonDb, mutex } from '../utils/config';
+import { challengerLogger, liquidatorLogger, Logger, makerLogger } from '../utils/logger';
 
 let startTime = new Date().valueOf();
 
 @Injectable()
 export class ArbitrationJobService {
     constructor(private arbitrationService: ArbitrationService) {
+        const cron = setInterval(async () => {
+            try {
+                await this.liquidation();
+            } catch (e) {
+                clearInterval(cron);
+            }
+        }, 1000 * 50);
     }
 
     @Interval(1000 * 40)
@@ -23,6 +30,7 @@ export class ArbitrationJobService {
         if (mutex.isLocked()) {
             return;
         }
+        const logger: Logger = isMaker ? makerLogger : challengerLogger;
         await mutex.runExclusive(async () => {
             try {
                 let verifySourceHashList: string[] = [];
@@ -96,7 +104,7 @@ export class ArbitrationJobService {
             return;
         }
         if (!arbitrationConfig.watchWalletList) {
-            logger.info(`the watch wallet list not configured`);
+            challengerLogger.info(`the watch wallet list not configured`);
             return;
         }
         if (mutex.isLocked()) {
@@ -119,23 +127,23 @@ export class ArbitrationJobService {
                     } else {
                         walletArbitrationTxList.push(...list);
                     }
-                    logger.debug(`${url} api tx count ${list.length}, wallet tx count ${walletArbitrationTxList.length}`);
+                    challengerLogger.debug(`${url} api tx count ${list.length}, wallet tx count ${walletArbitrationTxList.length}`);
                     for (const item of walletArbitrationTxList) {
                         const result = await this.arbitrationService.verifyArbitrationConditions(item);
                         if (result) {
                             const data = await this.arbitrationService.getJSONDBData(`/arbitrationHash/${item.sourceTxHash.toLowerCase()}`);
                             if (data) {
-                                logger.debug(`${item.sourceTxHash.toLowerCase()} exist`);
+                                challengerLogger.debug(`${item.sourceTxHash.toLowerCase()} exist`);
                                 continue;
                             }
                             try {
                                 await this.arbitrationService.handleUserArbitration(item);
                             } catch (error) {
-                                logger.error(`Arbitration encountered an exception: ${JSON.stringify(item)}`, error);
+                                challengerLogger.error(`Arbitration encountered an exception: ${JSON.stringify(item)}`, error);
                             }
                             await new Promise(resolve => setTimeout(resolve, 3000));
                         } else {
-                            logger.debug(`verifyArbitrationConditions fail ${JSON.stringify(item)}`);
+                            challengerLogger.debug(`verifyArbitrationConditions fail ${JSON.stringify(item)}`);
                         }
                     }
                     startTime = endTime;
@@ -167,14 +175,14 @@ export class ArbitrationJobService {
                         const hash = challengerData.sourceTxHash.toLowerCase();
                         const data = await this.arbitrationService.getJSONDBData(`/arbitrationHash/${hash}`);
                         if (data) {
-                            logger.debug(`${hash} tx exist`);
+                            makerLogger.debug(`${hash} tx exist`);
                             continue;
                         }
                         const txStatusRes = await HTTPGet(`${arbitrationConfig.makerApiEndpoint}/transaction/status/${hash}`, {
                             hash,
                         });
                         if (txStatusRes?.data !== 99) {
-                            logger.debug(`${hash} status ${txStatusRes?.data}`);
+                            makerLogger.debug(`${hash} status ${txStatusRes?.data}`);
                             continue;
                         }
                         const res: any = await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/proof/makerAskProof`, {
@@ -185,15 +193,48 @@ export class ArbitrationJobService {
                                 isNeedProof: 1,
                                 challenger: challengerData.verifyPassChallenger,
                             });
-                            logger.info(`maker ask proof ${hash}`);
+                            makerLogger.info(`maker ask proof ${hash}`);
                         } else {
-                            logger.error('maker request ask error', res.errmsg);
+                            makerLogger.error('maker request ask error', res.errmsg);
                         }
                         await new Promise(resolve => setTimeout(resolve, 3000));
                     }
                 }
             } catch (e) {
                 console.error('makerArbitrationJob error', e);
+            }
+        });
+    }
+
+    async liquidation() {
+        if (!arbitrationConfig.liquidatePrivateKey) {
+            return;
+        }
+        const isMaker = !!arbitrationConfig.makerList;
+        if (!isMaker) return;
+        if (mutex.isLocked()) {
+            return;
+        }
+        await mutex.runExclusive(async () => {
+            try {
+                if (arbitrationConfig.makerList instanceof Array) {
+                    for (const owner of arbitrationConfig.makerList) {
+                        const checkChallengeParamsList: CheckChallengeParams[] = await this.arbitrationService.getCheckChallengeParams(owner);
+                        if (checkChallengeParamsList && checkChallengeParamsList.length) {
+                            const hash = checkChallengeParamsList[0].sourceTxHash;
+                            if (!hash) continue;
+                            const checkChallengeParams = checkChallengeParamsList.filter(item => item.sourceTxHash.toLowerCase() === hash.toLowerCase());
+                            if (checkChallengeParams && checkChallengeParams.length) {
+                                return await this.arbitrationService.checkChallenge(checkChallengeParams);
+                            }
+                        }
+                    }
+                    liquidatorLogger.debug('liquidate transaction is not in the pending liquidation list');
+                }
+            } catch (e) {
+                liquidatorLogger.error('liquidate error', e);
+                await mutex.release();
+                throw new Error(e);
             }
         });
     }

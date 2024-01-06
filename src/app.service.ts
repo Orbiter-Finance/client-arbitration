@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ethers, providers } from 'ethers';
 import { aesEncrypt, HTTPGet } from './utils';
-import logger from './utils/logger';
 import { arbitrationConfig, arbitrationJsonDb, configdb, mutex } from './utils/config';
 import { ArbitrationService } from './arbitration/arbitration.service';
 import { CheckChallengeParams } from './arbitration/arbitration.interface';
+import { commonLogger } from './utils/logger';
 
 @Injectable()
 export class AppService {
@@ -12,7 +12,9 @@ export class AppService {
     }
 
     async setConfig(configParams: any) {
-        const { privateKey, secretKey, rpc, debug, makerApiEndpoint, makerList, watchWalletList, gasLimit, maxFeePerGas, maxPriorityFeePerGas, liquidatePrivateKey } = configParams;
+        const { privateKey, secretKey, rpc, debug, makerApiEndpoint, makerList, watchWalletList,
+            gasLimit, maxFeePerGas, maxPriorityFeePerGas, liquidatePrivateKey, telegramToken, telegramChatId,
+        } = configParams;
         if (rpc) {
             try {
                 const provider = new providers.JsonRpcProvider({
@@ -74,6 +76,12 @@ export class AppService {
         if (maxPriorityFeePerGas) {
             arbitrationConfig.maxPriorityFeePerGas = maxPriorityFeePerGas;
         }
+        if (telegramToken) {
+            arbitrationConfig.telegramToken = telegramToken;
+        }
+        if (telegramChatId) {
+            arbitrationConfig.telegramChatId = telegramChatId;
+        }
         if (debug) {
             arbitrationConfig.debug = +debug;
         }
@@ -84,10 +92,10 @@ export class AppService {
                 if (arbitrationClientConfig?.data?.subgraphEndpoint) {
                     arbitrationConfig.subgraphEndpoint = arbitrationClientConfig.data.subgraphEndpoint;
                 } else {
-                    logger.error(`request fail: ${makerApiEndpoint}/config/arbitration-client`, arbitrationClientConfig);
+                    commonLogger.error(`request fail: ${makerApiEndpoint}/config/arbitration-client`, arbitrationClientConfig);
                 }
             } catch (e) {
-                logger.error(`request fail: ${makerApiEndpoint}/config/arbitration-client`, e);
+                commonLogger.error(`request fail: ${makerApiEndpoint}/config/arbitration-client`, e);
             }
         }
         const config = JSON.parse(JSON.stringify(arbitrationConfig));
@@ -107,8 +115,8 @@ export class AppService {
         if (!hash) {
             return { code: 1, message: 'Invalid parameters' };
         }
-        if (!arbitrationConfig.privateKey) {
-            return { code: 1, message: 'Private key not injected' };
+        if (!arbitrationConfig.liquidatePrivateKey) {
+            return { code: 1, message: 'liquidatePrivateKey key not injected' };
         }
         const isMaker = !!arbitrationConfig.makerList;
         if (!isMaker) return;
@@ -121,7 +129,7 @@ export class AppService {
                     if (arbitrationConfig.makerList instanceof Array) {
                         for (const owner of arbitrationConfig.makerList) {
                             const checkChallengeParamsList: CheckChallengeParams[] = await this.arbitrationService.getCheckChallengeParams(owner);
-                            if (checkChallengeParamsList) {
+                            if (checkChallengeParamsList && checkChallengeParamsList.length) {
                                 const checkChallengeParams = checkChallengeParamsList.filter(item => item.sourceTxHash.toLowerCase() === hash.toLowerCase());
                                 if (checkChallengeParams && checkChallengeParams.length) {
                                     resolve({
@@ -134,7 +142,7 @@ export class AppService {
                         resolve({ code: 1, message: 'Transaction is not in the pending liquidation list' });
                     }
                 } catch (e) {
-                    logger.error('liquidate error', e);
+                    commonLogger.error('liquidate error', e);
                 }
                 resolve({ code: 1, message: 'Send Failure' });
             });

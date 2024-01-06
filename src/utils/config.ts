@@ -7,12 +7,14 @@ export let arbitrationConfig: {
     makerApiEndpoint?: string, subgraphEndpoint?: string,
     makerList?: string[], watchWalletList?: string[],
     gasLimit?: string, maxFeePerGas?: string, maxPriorityFeePerGas?: string,
-    liquidatePrivateKey?: string
+    liquidatePrivateKey?: string, telegramToken?: string, telegramChatId?: string
 } = {};
 
 export const configdb = new JsonDB(new Config('runtime/config', true, false, '/'));
 
 export const arbitrationJsonDb = new JsonDB(new Config('runtime/arbitrationDB', true, false, '/'));
+
+export const liquidationDb = new JsonDB(new Config('runtime/liquidationDB', true, false, '/'));
 
 export const mutex = new Mutex();
 

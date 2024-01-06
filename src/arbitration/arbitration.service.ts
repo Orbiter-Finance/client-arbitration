@@ -10,9 +10,10 @@ import {
 import { HTTPGet, HTTPPost } from '../utils';
 import Keyv from 'keyv';
 import BigNumber from 'bignumber.js';
-import logger from '../utils/logger';
 import { keccak256 } from "@ethersproject/keccak256";
-import { arbitrationConfig, arbitrationJsonDb } from '../utils/config';
+import { arbitrationConfig, arbitrationJsonDb, liquidationDb } from '../utils/config';
+import { challengerLogger, commonLogger, liquidatorLogger, makerLogger } from '../utils/logger';
+import { telegramBot } from '../utils/telegram';
 
 let accountNonce = 0;
 
@@ -40,7 +41,7 @@ export class ArbitrationService {
         if (!subgraphEndpoint) {
             throw new Error('SubgraphEndpoint not found');
         }
-        logger.debug('query', query.replace(/\ +/g,"").replace(/[\r\n]/g," "));
+        commonLogger.debug('query', query.replace(/\ +/g, '').replace(/[\r\n]/g, ' '));
         return HTTPPost(subgraphEndpoint, { query });
     }
 
@@ -510,7 +511,7 @@ export class ArbitrationService {
         } else {
             return null;
         }
-        logger.debug('getEBCValue amount', amount, 'ro', ro);
+        commonLogger.debug('getEBCValue amount', amount, 'ro', ro);
         return await contractInstance.getResponseIntent(ethers.BigNumber.from(amount), ro);
     }
 
@@ -532,17 +533,6 @@ export class ArbitrationService {
             transactionRequest.gasLimit = ethers.BigNumber.from(1000000);
         }
 
-        // try {
-        //     transactionRequest.gasLimit = await provider.estimateGas({
-        //         from: transactionRequest.from,
-        //         to: transactionRequest.to,
-        //         data: transactionRequest.data,
-        //         value: transactionRequest.value,
-        //     });
-        // } catch (e) {
-        //     logger.error('get gas limit error:', e);
-        // }
-
         if (arbitrationConfig.maxFeePerGas && arbitrationConfig.maxPriorityFeePerGas) {
             transactionRequest.type = 2;
             transactionRequest.maxFeePerGas = ethers.BigNumber.from(arbitrationConfig.maxFeePerGas);
@@ -557,19 +547,19 @@ export class ArbitrationService {
                     delete transactionRequest.gasPrice;
                 } else {
                     transactionRequest.gasPrice = Math.max(1500000000, +feeData.gasPrice);
-                    logger.info(`Legacy use gasPrice: ${String(transactionRequest.gasPrice)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
+                    commonLogger.info(`Legacy use gasPrice: ${String(transactionRequest.gasPrice)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
                 }
             } catch (e) {
-                logger.error('get gas price error:', e);
+                commonLogger.error('get gas price error:', e);
             }
         }
 
         const gasFee = new BigNumber(String(transactionRequest.gasLimit)).multipliedBy(String(transactionRequest.maxPriorityFeePerGas || 0));
-        logger.info(`maxFeePerGas: ${String(transactionRequest.maxFeePerGas)}, maxPriorityFeePerGas: ${String(transactionRequest.maxPriorityFeePerGas)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
+        commonLogger.info(`maxFeePerGas: ${String(transactionRequest.maxFeePerGas)}, maxPriorityFeePerGas: ${String(transactionRequest.maxPriorityFeePerGas)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
 
         const balance = await provider.getBalance(transactionRequest.from);
         if (new BigNumber(String(balance)).lt(gasFee)) {
-            logger.error(`${transactionRequest.from} Insufficient Balance: ${String(balance)} < ${String(gasFee)}`);
+            commonLogger.error(`${transactionRequest.from} Insufficient Balance: ${String(balance)} < ${String(gasFee)}`);
             throw new Error('Insufficient Balance');
         }
 
@@ -604,10 +594,10 @@ export class ArbitrationService {
             url: arbitrationConfig.rpc,
         });
         await this.getGasPrice(transactionRequest);
-        logger.debug(`transactionRequest: ${JSON.stringify(transactionRequest)}`);
+        commonLogger.debug(`transactionRequest: ${JSON.stringify(transactionRequest)}`);
         const signedTx = await account.signTransaction(transactionRequest);
         const txHash = utils.keccak256(signedTx);
-        logger.info(`txHash: ${txHash}`);
+        commonLogger.info(`txHash: ${txHash}`);
         const response = await provider.sendTransaction(signedTx);
         accountNonce = nonce + 1;
         return response;
@@ -627,11 +617,11 @@ export class ArbitrationService {
     }
 
     async handleUserArbitration(tx: ArbitrationTransaction) {
-        logger.info(`handleUserArbitration begin ${tx.sourceTxHash}`);
+        challengerLogger.info(`handleUserArbitration begin ${tx.sourceTxHash}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
         const mdcs = await this.getMDCs(tx.sourceMaker);
         if (!mdcs || !mdcs.length) {
-            logger.error(`none of MDC, makerAddress: ${tx.sourceMaker}`);
+            challengerLogger.error(`none of MDC, makerAddress: ${tx.sourceMaker}`);
             return;
         }
         let ruleKey;
@@ -644,7 +634,7 @@ export class ArbitrationService {
             if (ruleKey) break;
         }
         if (!ruleKey) {
-            logger.error(`none of ruleKey, owner: ${owner} ebcAddress: ${tx.ebcAddress} ruleId: ${tx.ruleId}`);
+            challengerLogger.error(`none of ruleKey, owner: ${owner} ebcAddress: ${tx.ebcAddress} ruleId: ${tx.ruleId}`);
             return;
         }
         let newChallengeNodeNumber = '0x';
@@ -655,9 +645,9 @@ export class ArbitrationService {
             );
             newChallengeNodeNumber += challengeNode.substr(challengeNode.length - 16, 16);
         }
-        logger.debug("newChallengeNodeNumber", newChallengeNodeNumber);
+        challengerLogger.debug("newChallengeNodeNumber", newChallengeNodeNumber);
         const parentNodeNumOfTargetNode = await this.getChallengeNodeNumber(mdcAddress, newChallengeNodeNumber);
-        logger.debug('parentNodeNumOfTargetNode', parentNodeNumOfTargetNode);
+        challengerLogger.debug('parentNodeNumOfTargetNode', parentNodeNumOfTargetNode);
 
         const freezeAmount = new BigNumber(tx.freezeAmount1).multipliedBy(2).toFixed(0);
 
@@ -665,9 +655,9 @@ export class ArbitrationService {
             url: arbitrationConfig.rpc,
         });
         const mdcBalance = await provider.getBalance(mdcAddress);
-        logger.info(`mdcAddress: ${mdcAddress}, mdcBalance: ${new BigNumber(String(mdcBalance)).div(10 ** 18).toFixed(6)}, owner: ${owner}, parentNodeNumOfTargetNode: ${parentNodeNumOfTargetNode}`);
+        challengerLogger.info(`mdcAddress: ${mdcAddress}, mdcBalance: ${new BigNumber(String(mdcBalance)).div(10 ** 18).toFixed(6)}, owner: ${owner}, parentNodeNumOfTargetNode: ${parentNodeNumOfTargetNode}`);
         if (new BigNumber(String(mdcBalance)).lt(freezeAmount)) {
-            logger.error(`MDC ${mdcAddress} Insufficient Balance: ${String(mdcBalance)} < ${String(freezeAmount)}`);
+            challengerLogger.error(`MDC ${mdcAddress} Insufficient Balance: ${String(mdcBalance)} < ${String(freezeAmount)}`);
             return;
         }
         if (!await this.checkDuplicationChallenge(tx.sourceTxHash, tx.sourceTxTime, tx.sourceChainId, tx.sourceTxBlockNum, tx.sourceTxIndex, ruleKey, tx.freezeToken)) {
@@ -675,7 +665,7 @@ export class ArbitrationService {
                 isChallengesExist: 1,
                 isNeedProof: 0,
             });
-            logger.info(`${tx.sourceTxHash} challenges already exist`);
+            challengerLogger.info(`${tx.sourceTxHash} challenges already exist`);
             return;
         }
         const account = await this.getWallet();
@@ -684,7 +674,7 @@ export class ArbitrationService {
             const res: any = await HTTPGet(`${arbitrationConfig.makerApiEndpoint}/transaction/challenge/${tx.sourceTxHash}`);
             if (res?.data) {
                 await arbitrationJsonDb.delete(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`);
-                logger.info(`a submission challenge record already exists for this transaction, please try again later. ${JSON.stringify(res.data)}`);
+                challengerLogger.info(`a submission challenge record already exists for this transaction, please try again later. ${JSON.stringify(res.data)}`);
                 return;
             }
             await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/challenge`, {
@@ -692,7 +682,7 @@ export class ArbitrationService {
                 challenger,
             });
         } catch (e) {
-            logger.error('submit challenge api error', e);
+            challengerLogger.error('submit challenge api error', e);
         }
 
         // Obtaining arbitration deposit
@@ -707,47 +697,47 @@ export class ArbitrationService {
             ethers.BigNumber.from(freezeAmount),
             ethers.BigNumber.from(parentNodeNumOfTargetNode || 0),
         ];
-        logger.info(`challenge encodeData: ${JSON.stringify(encodeData)}`);
+        challengerLogger.info(`challenge encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('challenge', encodeData);
         const sendValue =
             tx.freezeToken === '0x0000000000000000000000000000000000000000' ?
             ethers.BigNumber.from(new BigNumber(freezeAmount).plus(tx.minChallengeDepositAmount || 0).toString()) :
             ethers.BigNumber.from(0);
-        logger.info(`challenger: ${challenger}, sendValue: ${String(sendValue)}`);
+        challengerLogger.info(`challenger: ${challenger}, sendValue: ${String(sendValue)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`, {
             message: 'Preparing challenge',
             isNeedProof: 0,
         });
         const response = await this.send(mdcAddress, sendValue, data);
-        logger.debug(`handleUserArbitration tx: ${JSON.stringify(response)}`);
+        challengerLogger.debug(`handleUserArbitration tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`, {
             challenger,
             fromChainId: tx.sourceChainId,
             submitSourceTxHash: response.hash,
             isNeedProof: 1
         });
-        logger.info(`handleUserArbitration send ${tx.sourceTxHash} ${response.hash}`);
+        challengerLogger.info(`handleUserArbitration send ${tx.sourceTxHash} ${response.hash}`);
         const receipt = await this.confirmTx(response.hash);
-        logger.info(`handleUserArbitration success ${JSON.stringify(receipt)}`);
+        challengerLogger.info(`handleUserArbitration success ${JSON.stringify(receipt)}`);
         try {
             await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
                 sourceId: tx.sourceTxHash,
                 hash: response.hash
             });
         } catch (e) {
-            logger.error('record error', e);
+            challengerLogger.error('record error', e);
         }
     }
 
     async userSubmitProof(txData: VerifyChallengeSourceParams) {
         if (!txData.proof) {
-            logger.error('proof is empty');
+            challengerLogger.error('proof is empty');
             return;
         }
-        logger.info(`userSubmitProof begin ${txData.hash}`);
+        challengerLogger.info(`userSubmitProof begin ${txData.hash}`);
         const mdcs = await this.getMDCs(txData.sourceMaker);
         if (!mdcs || !mdcs.length) {
-            logger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
+            challengerLogger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
             return;
         }
         let rule: any;
@@ -760,13 +750,13 @@ export class ArbitrationService {
             if (rule?.chain0) break;
         }
         if (!rule?.chain0) {
-            logger.error(`nonce of rule, ${JSON.stringify(txData)}`);
+            challengerLogger.error(`nonce of rule, ${JSON.stringify(txData)}`);
             return;
         }
-        logger.info(`mdcAddress: ${mdcAddress}, owner: ${owner}`);
+        challengerLogger.info(`mdcAddress: ${mdcAddress}, owner: ${owner}`);
         const columnArray = await this.getColumnArray(txData.sourceTime, mdcAddress, owner);
         if (!columnArray?.dealers) {
-            logger.error(`nonce of columnArray, ${JSON.stringify(txData)}`);
+            challengerLogger.error(`nonce of columnArray, ${JSON.stringify(txData)}`);
             return;
         }
         const { dealers, ebcs, chainIds } = columnArray;
@@ -795,7 +785,7 @@ export class ArbitrationService {
             rule.chain0CompensationRatio,
             rule.chain1CompensationRatio,
         ];
-        logger.info(`formatRule: ${JSON.stringify(formatRule)}`);
+        challengerLogger.info(`formatRule: ${JSON.stringify(formatRule)}`);
         const rlpRuleBytes = utils.RLP.encode(
             formatRule.map((r) => utils.stripZeros(ethers.BigNumber.from(r).toHexString())),
         );
@@ -809,7 +799,7 @@ export class ArbitrationService {
             rawDatas,
             rlpRuleBytes
         ];
-        logger.info(`verifyChallengeSource encodeData: ${JSON.stringify(encodeData)}`);
+        challengerLogger.info(`verifyChallengeSource encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('verifyChallengeSource', encodeData);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.hash}`, {
             message: 'Preparing verifyChallengeSource',
@@ -818,37 +808,37 @@ export class ArbitrationService {
             isNeedProof: 0
         });
         const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
-        logger.debug(`userSubmitProof tx: ${JSON.stringify(response)}`);
+        challengerLogger.debug(`userSubmitProof tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.hash}`, {
             challenger: txData.challenger,
             submitSourceTxHash: txData.submitSourceTxHash,
             verifyChallengeSourceHash: response.hash,
             isNeedProof: 0
         });
-        logger.info(`userSubmitProof end ${txData.hash} ${response.hash}`);
+        challengerLogger.info(`userSubmitProof end ${txData.hash} ${response.hash}`);
         const receipt = await this.confirmTx(response.hash);
-        logger.info(`userSubmitProof success ${JSON.stringify(receipt)}`);
+        challengerLogger.info(`userSubmitProof success ${JSON.stringify(receipt)}`);
         try {
             await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
                 sourceId: txData.hash,
                 hash: response.hash
             });
         } catch (e) {
-            logger.error('record error', e);
+            challengerLogger.error('record error', e);
         }
     }
 
     async makerSubmitProof(txData: VerifyChallengeDestParams) {
         if (!txData.proof) {
-            logger.error('proof is empty');
+            makerLogger.error('proof is empty');
             return;
         }
-        logger.info(`makerSubmitProof begin sourceId: ${txData.sourceId}`);
+        makerLogger.info(`makerSubmitProof begin sourceId: ${txData.sourceId}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
         const chainRels = await this.getChainRels();
         const mdcs = await this.getMDCs(txData.sourceMaker);
         if (!mdcs || !mdcs.length) {
-            logger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
+            makerLogger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
             return;
         }
         let responseTime;
@@ -861,17 +851,17 @@ export class ArbitrationService {
             if (responseTime) break;
         }
         if (!responseTime) {
-            logger.error(`nonce of responseTime, ${JSON.stringify(txData)}`);
+            makerLogger.error(`nonce of responseTime, ${JSON.stringify(txData)}`);
             return;
         }
-        logger.info(`mdcAddress: ${mdcAddress}, owner: ${owner}`);
+        makerLogger.info(`mdcAddress: ${mdcAddress}, owner: ${owner}`);
         const chain = chainRels.find(c => +c.id === +txData.sourceChain);
         if (!chain) {
-            logger.error(`nonce of chainRels, ${JSON.stringify(txData)}`);
+            makerLogger.error(`nonce of chainRels, ${JSON.stringify(txData)}`);
             return;
         }
         const responseMakerList = await this.getResponseMakerList(mdcAddress, txData.sourceTime);
-        logger.debug('responseMakerList', responseMakerList);
+        makerLogger.debug('responseMakerList', responseMakerList);
         const rawDatas = utils.defaultAbiCoder.encode(
             ['uint256[]'],
             [responseMakerList.map(item => ethers.BigNumber.from(item))],
@@ -880,7 +870,7 @@ export class ArbitrationService {
 
         const destAmount = await this.getEBCValue(owner, txData.ebcAddress, txData.ruleId, txData.sourceChain, txData.targetChain, txData.sourceAmount);
         if (!destAmount) {
-            logger.error(`nonce of destAmount, ${JSON.stringify(txData)}`);
+            makerLogger.error(`nonce of destAmount, ${JSON.stringify(txData)}`);
             return;
         }
         const verifiedSourceTxDataList = [
@@ -894,10 +884,10 @@ export class ArbitrationService {
             responseMakersHash,
             responseTime
         ];
-        logger.info(`verifiedSourceTxData: ${JSON.stringify(verifiedSourceTxDataList)}`);
+        makerLogger.info(`verifiedSourceTxData: ${JSON.stringify(verifiedSourceTxDataList)}`);
         const contractVerifiedDataHashList: string[] = await this.getVerifiedDataHashList(txData.sourceId);
         if (!contractVerifiedDataHashList.length) {
-            logger.error(`nonce of verifiedDataHash0, ${JSON.stringify(txData)}`);
+            makerLogger.error(`nonce of verifiedDataHash0, ${JSON.stringify(txData)}`);
             return;
         }
         const localVerifiedDataHash = utils.keccak256(utils.defaultAbiCoder.encode(
@@ -914,14 +904,14 @@ export class ArbitrationService {
             ],
             verifiedSourceTxDataList.map(item => ethers.BigNumber.from(item)),
         ));
-        logger.info(`localVerifiedDataHash: ${localVerifiedDataHash}, contractVerifiedDataHashList: ${JSON.stringify(contractVerifiedDataHashList)}`);
+        makerLogger.info(`localVerifiedDataHash: ${localVerifiedDataHash}, contractVerifiedDataHashList: ${JSON.stringify(contractVerifiedDataHashList)}`);
         if (!contractVerifiedDataHashList.find(item => item.toLowerCase() === localVerifiedDataHash.toLowerCase())) {
             await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceId.toLowerCase()}`, {
                 message: `verifiedDataHash check fail`,
                 challenger: txData.challenger,
                 isNeedProof: 0,
             });
-            logger.error(`${txData.sourceId} verifiedDataHash check fail`);
+            makerLogger.error(`${txData.sourceId} verifiedDataHash check fail`);
             return;
         }
         const verifiedSourceTxData = {
@@ -944,58 +934,72 @@ export class ArbitrationService {
             verifiedSourceTxData,
             rawDatas,
         ];
-        logger.info(`verifyChallengeDest encodeData: ${JSON.stringify(encodeData)}`);
+        makerLogger.info(`verifyChallengeDest encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('verifyChallengeDest', encodeData);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceId.toLowerCase()}`, {
             message: 'Preparing verifyChallengeDest',
             challenger: txData.challenger,
             isNeedProof: 0
         });
-        const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
-        logger.debug(`makerSubmitProof tx: ${JSON.stringify(response)}`);
+        let response;
+        try {
+            response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
+        } catch (e) {
+            await telegramBot.sendMessage(`maker submit proof error: ${e.message}`);
+            throw new Error(e);
+        }
+        makerLogger.debug(`makerSubmitProof tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceId.toLowerCase()}`, {
             verifyChallengeDestHash: response.hash,
             challenger: txData.challenger,
             isNeedProof: 0
         });
-        logger.info(`makerSubmitProof end sourceId: ${txData.sourceId} verifyChallengeDestHash: ${response.hash}`);
+        makerLogger.info(`makerSubmitProof end sourceId: ${txData.sourceId} verifyChallengeDestHash: ${response.hash}`);
         const receipt = await this.confirmTx(response.hash);
-        logger.info(`makerSubmitProof success ${JSON.stringify(receipt)}`);
+        makerLogger.info(`makerSubmitProof success ${JSON.stringify(receipt)}`);
         try {
             await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
                 sourceId: txData.sourceId,
                 hash: response.hash
             });
         } catch (e) {
-            logger.error('record error', e);
+            makerLogger.error('record error', e);
         }
     }
 
     async checkChallenge(txDataList: CheckChallengeParams[]) {
         if (!arbitrationConfig.liquidatePrivateKey) {
-            logger.error('liquidatePrivateKey key not injected');
+            liquidatorLogger.error('liquidatePrivateKey key not injected');
             return { message: 'liquidatePrivateKey key not injected' };
         }
         const mdcAddress = txDataList[0].mdcAddress;
         const sourceChainId = txDataList[0].sourceChainId;
         const sourceTxHash = txDataList[0].sourceTxHash;
         const challengerList = txDataList.map(item => item.challenger);
-        logger.info(`checkChallenge begin: ${sourceTxHash}`);
+        liquidatorLogger.info(`checkChallenge begin: ${sourceTxHash}`);
         const encodeData = [
             sourceChainId,
             sourceTxHash,
             challengerList,
         ];
-        logger.info(`checkChallenge encodeData: ${JSON.stringify(encodeData)}`);
+        liquidatorLogger.info(`checkChallenge encodeData: ${JSON.stringify(encodeData)}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
         const data = ifa.encodeFunctionData('checkChallenge', encodeData);
-        const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data, await this.getWallet(arbitrationConfig.liquidatePrivateKey));
-        logger.debug(`CheckChallenge tx: ${JSON.stringify(response)}`);
-        await arbitrationJsonDb.push(`/arbitrationHash/${sourceTxHash.toLowerCase()}`, {
+        let response;
+        try {
+            response = await this.send(mdcAddress, ethers.BigNumber.from(0), data, await this.getWallet(arbitrationConfig.liquidatePrivateKey));
+        } catch (e) {
+            await telegramBot.sendMessage(`liquidate error: ${e.message}`);
+            throw new Error(e);
+        }
+
+        liquidatorLogger.debug(`CheckChallenge tx: ${JSON.stringify(response)}`);
+        await liquidationDb.push(`/arbitrationHash/${sourceTxHash.toLowerCase()}`, {
             challenger: challengerList,
-            checkChallengeHash: response.hash,
-            isNeedProof: 0
+            checkChallengeHash: response.hash
         });
+        const receipt = await this.confirmTx(response.hash);
+        makerLogger.info(`checkChallenge success ${JSON.stringify(receipt)}`);
         return response as any;
     }
 }

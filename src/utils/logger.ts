@@ -120,28 +120,49 @@ const logger = LoggerService.getLogger('arbitration', {
     dir,
 });
 
-export default {
+export class Logger {
+    public logger;
+    public name;
+
+    constructor(name) {
+        this.name = name;
+        this.logger = LoggerService.getLogger(`${name}`, {
+            dir: path.join(__dirname, `../../runtime/mtx/${name}`),
+        });
+    }
+
     info(...msg) {
         const message = msg.join(' ');
-        console.log(`${getFormatDate()} [INFO] \x1B[32m%s\x1b[39m`, message);
-        logger.info(message);
-    },
+        console.log(`${getFormatDate()} [INFO] ${this.name ? ` ${this.name}` : ''} \x1B[32m%s\x1b[39m`, message);
+        this.logger.info(message);
+    }
+
     error(...msg) {
         const message = msg.join(' ');
-        console.log(`${getFormatDate()} [ERROR] \x1B[31m%s\x1b[39m`, message);
-        logger.error(message);
-    },
+        console.log(`${getFormatDate()} [ERROR] ${this.name ? ` ${this.name}` : ''} \x1B[31m%s\x1b[39m`, message);
+        this.logger.error(message);
+    }
+
     debug(...msg) {
         if (!arbitrationConfig.debug) return;
         const message = msg.join(' ');
-        console.log(`${getFormatDate()} [DEBUG] \x1B[34m%s\x1b[39m`, message);
+        console.log(`${getFormatDate()} [DEBUG] ${this.name ? ` ${this.name}` : ''} \x1B[34m%s\x1b[39m`, message);
         logger.info(message);
-    },
-    input(...msg) {
-        const message = msg.join(' ');
-        console.log(`${getFormatDate()} [INPUT]`, message);
-    },
-};
+    }
+
+    log(...msg) {
+        const message = msg.join(" ");
+        this.logger.info(message);
+    }
+}
+
+export const challengerLogger = new Logger('challenger');
+
+export const makerLogger = new Logger('maker');
+
+export const liquidatorLogger = new Logger('liquidator');
+
+export const commonLogger = new Logger('common');
 
 function getFormatDate(date?) {
     const timestamp = new Date(date || new Date().valueOf());
