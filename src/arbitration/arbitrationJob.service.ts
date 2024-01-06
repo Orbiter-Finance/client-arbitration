@@ -113,7 +113,7 @@ export class ArbitrationJobService {
                 const url = `${arbitrationConfig.makerApiEndpoint}/transaction/pendingArbitration`;
                 const res: any = await HTTPGet(url);
                 if (res?.data) {
-                    const list: ArbitrationTransaction[] = res.data;
+                    const list: ArbitrationTransaction[] = res?.data?.list || [];
                     const walletArbitrationTxList = [];
                     if (!arbitrationConfig.watchWalletList.find(item => item === '*')) {
                         for (const data of list) {
