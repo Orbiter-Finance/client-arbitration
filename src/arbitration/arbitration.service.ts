@@ -1008,6 +1008,9 @@ export class ArbitrationService {
         } catch (e) {
             liquidatorLogger.error('record error', e);
         }
+        if (+receipt.status === 0) {
+            throw new Error(`receipt status is fail`);
+        }
         return response as any;
     }
 }
