@@ -11,7 +11,7 @@ export interface TelegramOption {
 import axios from 'axios';
 
 class Telegram {
-    constructor(private readonly opts?: TelegramOption) {
+    constructor() {
     }
 
     async sendMessage(messageText: string) {
@@ -19,13 +19,13 @@ class Telegram {
             return;
         }
         const requestData = {
-            chat_id: this.opts?.chatId,
+            chat_id: arbitrationConfig.telegramChatId,
             text: messageText,
-            disable_notification: this.opts?.disableNotification || false,
-            parse_mode: this.opts?.parseMode || '',
+            disable_notification: false,
+            parse_mode: '',
         };
         try {
-            const url = `${this.opts?.host || 'https://api.telegram.org'}/bot${this.opts?.token}/sendMessage`;
+            const url = `https://api.telegram.org/bot${arbitrationConfig.telegramToken}/sendMessage`;
             return await axios.post(url, requestData);
         } catch (error) {
             console.error('Error sending to Telegram', error);
@@ -34,7 +34,4 @@ class Telegram {
     }
 }
 
-export const telegramBot = new Telegram({
-    token: String(arbitrationConfig.telegramToken),
-    chatId: String(arbitrationConfig.telegramChatId),
-});
+export const telegramBot = new Telegram();
