@@ -61,7 +61,7 @@ export class ArbitrationJobService {
                     const url = `${arbitrationConfig.makerApiEndpoint}/proof/${isMaker ? 'verifyChallengeDestParams' : 'verifyChallengeSourceParams'}/${hash}`;
                     const result: any = await HTTPGet(url);
                     const proofDataList: any[] = result?.data;
-                    if (!proofDataList.length) {
+                    if (!proofDataList || !proofDataList.length) {
                         logger.debug(`The interface does not return a list of ${hash} proofs`);
                         continue;
                     }
@@ -188,7 +188,7 @@ export class ArbitrationJobService {
                         const res: any = await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/proof/makerAskProof`, {
                             hash,
                         });
-                        if (+res.errno === 0) {
+                        if (+res?.errno === 0) {
                             await arbitrationJsonDb.push(`/arbitrationHash/${hash}`, {
                                 isNeedProof: 1,
                                 challenger: challengerData.verifyPassChallenger,
