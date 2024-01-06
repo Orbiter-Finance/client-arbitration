@@ -55,7 +55,7 @@ If you are on the maker response side, refer to the following configuration:
         "gasLimit": "",
         "maxFeePerGas": "",
         "maxPriorityFeePerGas": "",
-        "makerList": ["0x227d76ab1cea2edfc9a62833af1743259c1f055f"], 
+        "makerList": ["0x8086061Cf07C03559fBB4AA58f191F9c4A5df2b2"], 
     }'
    ```
 
