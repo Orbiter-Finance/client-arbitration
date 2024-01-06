@@ -999,7 +999,15 @@ export class ArbitrationService {
             checkChallengeHash: response.hash
         });
         const receipt = await this.confirmTx(response.hash);
-        makerLogger.info(`checkChallenge success ${JSON.stringify(receipt)}`);
+        liquidatorLogger.info(`checkChallenge success ${JSON.stringify(receipt)}`);
+        try {
+            await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
+                sourceId: sourceTxHash,
+                hash: response.hash
+            });
+        } catch (e) {
+            liquidatorLogger.error('record error', e);
+        }
         return response as any;
     }
 }
