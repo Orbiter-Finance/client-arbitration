@@ -4,7 +4,7 @@ import { ArbitrationService } from './arbitration.service';
 import { ArbitrationTransaction, CheckChallengeParams } from './arbitration.interface';
 import { HTTPGet, HTTPPost } from '../utils';
 import { arbitrationConfig, arbitrationJsonDb, mutex } from '../utils/config';
-import { challengerLogger, liquidatorLogger, Logger, makerLogger } from '../utils/logger';
+import { challengerLogger, commonLogger, liquidatorLogger, Logger, makerLogger } from '../utils/logger';
 
 let versionUpdate = false;
 
@@ -221,19 +221,15 @@ export class ArbitrationJobService {
         if (userVersion && !isMaker && userVersion !== process.env.UserVersion) {
             if (userVersion.split('.')[0] !== process.env.UserVersion.split('.')[0]) {
                 versionUpdate = true;
-                console.error('Please pull the latest code from the main branch due to version updates.');
-            } else {
-                console.warn('Please pull the latest code from the main branch due to version updates.');
             }
+            commonLogger.error('Please pull the latest code from the main branch due to version updates.');
         }
         const makerVersion = txStatusRes?.data?.MakerVersion;
         if (makerVersion && isMaker && makerVersion !== process.env.MakerVersion) {
             if (makerVersion.split('.')[0] !== process.env.MakerVersion.split('.')[0]) {
                 versionUpdate = true;
-                console.error('Please pull the latest code from the main branch due to version updates.');
-            } else {
-                console.warn('Please pull the latest code from the main branch due to version updates.');
             }
+            commonLogger.error('Please pull the latest code from the main branch due to version updates.');
         }
     }
 
