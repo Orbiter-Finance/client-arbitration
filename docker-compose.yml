@@ -7,6 +7,9 @@ services:
     build: .
     container_name: arbitration-client
     restart: always
+    environment:
+      UserVersion: '1.0.0'
+      MakerVersion: '1.0.0'
     ports:
       - '3000:3000'
     networks:

@@ -6,6 +6,8 @@ import { HTTPGet, HTTPPost } from '../utils';
 import { arbitrationConfig, arbitrationJsonDb, mutex } from '../utils/config';
 import { challengerLogger, liquidatorLogger, Logger, makerLogger } from '../utils/logger';
 
+let versionUpdate = false;
+
 @Injectable()
 export class ArbitrationJobService {
     constructor(private arbitrationService: ArbitrationService) {
@@ -20,6 +22,9 @@ export class ArbitrationJobService {
 
     @Interval(1000 * 40)
     async syncProof() {
+        if (versionUpdate) {
+            return;
+        }
         if (!arbitrationConfig.privateKey) {
             console.log('Private key not injected', arbitrationConfig);
             return;
@@ -95,6 +100,9 @@ export class ArbitrationJobService {
     // userArbitrationJob
     @Interval(1000 * 30)
     getListOfUnrefundedTransactions() {
+        if (versionUpdate) {
+            return;
+        }
         if (!arbitrationConfig.privateKey) {
             return;
         }
@@ -153,6 +161,9 @@ export class ArbitrationJobService {
     // makerArbitrationJob
     @Interval(1000 * 30)
     getListOfUnresponsiveTransactions() {
+        if (versionUpdate) {
+            return;
+        }
         if (!arbitrationConfig.privateKey) {
             return;
         }
@@ -200,6 +211,30 @@ export class ArbitrationJobService {
                 console.error('makerArbitrationJob error', e);
             }
         });
+    }
+
+    @Interval(1000 * 60)
+    async checkVersion() {
+        const txStatusRes = await HTTPGet(`${arbitrationConfig.makerApiEndpoint}/version`);
+        const isMaker = !!arbitrationConfig.makerList;
+        const userVersion = txStatusRes?.data?.UserVersion;
+        if (userVersion && !isMaker && userVersion !== process.env.UserVersion) {
+            if (userVersion.split('.')[0] !== process.env.UserVersion.split('.')[0]) {
+                versionUpdate = true;
+                console.error('Please pull the latest code from the main branch due to version updates.');
+            } else {
+                console.warn('Please pull the latest code from the main branch due to version updates.');
+            }
+        }
+        const makerVersion = txStatusRes?.data?.MakerVersion;
+        if (makerVersion && isMaker && makerVersion !== process.env.MakerVersion) {
+            if (makerVersion.split('.')[0] !== process.env.MakerVersion.split('.')[0]) {
+                versionUpdate = true;
+                console.error('Please pull the latest code from the main branch due to version updates.');
+            } else {
+                console.warn('Please pull the latest code from the main branch due to version updates.');
+            }
+        }
     }
 
     async liquidation() {
