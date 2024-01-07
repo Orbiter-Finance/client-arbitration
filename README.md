@@ -1,5 +1,5 @@
 # Arbitration Client
-> ⚠️ **This repository will undergo frequent code modifications in the near future to enhance the stability of automated arbitration. Please ensure that your client is running the latest code. ** ![](https://img.shields.io/github/last-commit/Orbiter-Finance/client-arbitration?style=for-the-badge)
+> ⚠️ **This repository will undergo frequent code modifications in the near future to enhance the stability of automated arbitration. Please ensure that your client is running the latest code.** ![](https://img.shields.io/github/last-commit/Orbiter-Finance/client-arbitration?style=for-the-badge)
 
 ## Getting Started
 
