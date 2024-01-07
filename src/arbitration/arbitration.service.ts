@@ -45,7 +45,7 @@ export class ArbitrationService {
         return HTTPPost(subgraphEndpoint, { query });
     }
 
-    async verifyArbitrationConditions(sourceTx: ArbitrationTransaction): Promise<boolean> {
+    async verifySourceConditions(sourceTx: ArbitrationTransaction): Promise<boolean> {
         // Arbitration time reached
         const chainRels = await this.getChainRels();
         const chain = chainRels.find(c => +c.id === +sourceTx.sourceChainId);
@@ -56,6 +56,36 @@ export class ArbitrationService {
         const minVerifyChallengeSourceTime = fromTimestamp + (+chain.minVerifyChallengeSourceTxSecond);
         const maxVerifyChallengeSourceTime = fromTimestamp + (+chain.maxVerifyChallengeSourceTxSecond);
         const nowTime = new Date().valueOf() / 1000;
+        return nowTime >= minVerifyChallengeSourceTime && nowTime <= maxVerifyChallengeSourceTime;
+    }
+
+    async verifyArbitrationConditions(sourceTx: ArbitrationTransaction): Promise<boolean> {
+        // Arbitration time reached
+        const chainRels = await this.getChainRels();
+        const chain = chainRels.find(c => +c.id === +sourceTx.sourceChainId);
+        if (!chain) {
+            return false;
+        }
+        const rule = await this.getRuleByRuleId(sourceTx.ruleId);
+        if (!rule) {
+            return false;
+        }
+        let responseTime;
+        if (+rule.chain0 === +sourceTx.sourceChainId) {
+            responseTime = +rule.chain0ResponseTime;
+        } else {
+            responseTime = +rule.chain1ResponseTime;
+        }
+        const fromTimestamp = +sourceTx.sourceTxTime;
+        const minVerifyChallengeSourceTime = fromTimestamp + responseTime;
+        const maxVerifyChallengeSourceTime = fromTimestamp + (+chain.maxVerifyChallengeSourceTxSecond);
+        const nowTime = new Date().valueOf() / 1000;
+        if (nowTime < minVerifyChallengeSourceTime) {
+            challengerLogger.debug(`verifyArbitrationConditions ${sourceTx.sourceChainId} ${nowTime} < ${minVerifyChallengeSourceTime}`);
+        }
+        if (nowTime > maxVerifyChallengeSourceTime) {
+            challengerLogger.debug(`verifyArbitrationConditions ${sourceTx.sourceChainId} ${nowTime} > ${maxVerifyChallengeSourceTime}`);
+        }
         return nowTime >= minVerifyChallengeSourceTime && nowTime <= maxVerifyChallengeSourceTime;
     }
 
@@ -175,6 +205,82 @@ export class ArbitrationService {
             }
         }
         return true;
+    }
+
+    async getRuleByRuleId(ruleId: string): Promise<{
+        chain0,
+        chain0CompensationRatio,
+        chain0ResponseTime,
+        chain0Status,
+        chain0Token,
+        chain0TradeFee,
+        chain0WithholdingFee,
+        chain0maxPrice,
+        chain0minPrice,
+        chain1,
+        chain1CompensationRatio,
+        chain1ResponseTime,
+        chain1Status,
+        chain1Token,
+        chain1TradeFee,
+        chain1WithholdingFee,
+        chain1maxPrice,
+        chain1minPrice
+    } | null> {
+        const queryStr = `
+        {
+            mdcs {
+              ruleLatest {
+                ruleUpdateRel {
+                  ruleUpdateVersion(
+                    where: {id: "${ruleId.toLowerCase()}", ruleValidation: true}
+                  ) {
+                    chain0
+                    chain0CompensationRatio
+                    chain0ResponseTime
+                    chain0Status
+                    chain0Token
+                    chain0TradeFee
+                    chain0WithholdingFee
+                    chain0maxPrice
+                    chain0minPrice
+                    chain1
+                    chain1CompensationRatio
+                    chain1ResponseTime
+                    chain1Status
+                    chain1Token
+                    chain1TradeFee
+                    chain1WithholdingFee
+                    chain1maxPrice
+                    chain1minPrice
+                  }
+                }
+              }
+            }
+          }
+          `;
+        const result = await this.querySubgraph(queryStr) || {};
+        if (result?.data?.mdcs) {
+            for (const mdc of result?.data?.mdcs) {
+                const ruleLatests = mdc?.ruleLatest;
+                if (ruleLatests) {
+                    for (const ruleLatest of ruleLatests) {
+                        const ruleUpdateRels = ruleLatest?.ruleUpdateRel;
+                        if (ruleUpdateRels) {
+                            for (const ruleUpdateRel of ruleUpdateRels) {
+                                const ruleUpdateVersions = ruleUpdateRel?.ruleUpdateVersion;
+                                if (ruleUpdateVersions) {
+                                    for (const ruleUpdateVersion of ruleUpdateVersions) {
+                                        return ruleUpdateVersion;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     async getRule(owner: string, ebcAddress: string, ruleId: string): Promise<{
