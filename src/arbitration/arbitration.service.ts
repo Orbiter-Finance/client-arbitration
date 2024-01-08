@@ -439,6 +439,7 @@ export class ArbitrationService {
                         }
                     },orderBy: challengeNodeNumber, orderDirection: asc) {
                     sourceChainId
+                    sourceTxTime
                     sourceTxBlockNum
                     sourceTxHash
                     challengeId
@@ -447,6 +448,7 @@ export class ArbitrationService {
                     createChallengeTimestamp
                     liquidationHash
                     challengeManager {
+                      verifyChallengeSourceTimestamp
                       owner
                       challengeStatuses
                       mdcAddr
