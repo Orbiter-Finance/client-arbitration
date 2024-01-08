@@ -271,13 +271,14 @@ export class ArbitrationJobService {
                                 liquidatorLogger.debug(`none of verifyChallengeSourceTimestamp, nextChallengeParams: ${JSON.stringify(nextChallengeParams)}`);
                                 return;
                             }
-                            const isMakerFail = new Date().valueOf() > ((+nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp + +chainRel.maxVerifyChallengeDestTxSecond) * 1000);
-                            const isUserFail = +nextChallengeParams?.challengeManager?.verifyChallengeDestTimestamp !== 0 || new Date().valueOf() > ((+nextChallengeParams.sourceTxTime + +chainRel.maxVerifyChallengeSourceTxSecond) * 1000);
-                            if (!isMakerFail && !isUserFail) {
+                            const isMakerFail = nextChallengeParams.challengeManager.challengeStatuses === "VERIFY_SOURCE" && new Date().valueOf() > ((+nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp + +chainRel.maxVerifyChallengeDestTxSecond) * 1000);
+                            const isUserFail = nextChallengeParams.challengeManager.challengeStatuses === 'CREATE' && +nextChallengeParams?.challengeManager?.verifyChallengeDestTimestamp !== 0 || new Date().valueOf() > ((+nextChallengeParams.sourceTxTime + +chainRel.maxVerifyChallengeSourceTxSecond) * 1000);
+                            const isMakerSuccess = nextChallengeParams.challengeManager.challengeStatuses === 'VERIFY_DEST';
+                            if (!isMakerFail && !isUserFail && !isMakerSuccess) {
                                 liquidatorLogger.debug('failure to meet liquidation conditions');
                                 return;
                             }
-                            liquidatorLogger.info(`MakerFail: ${isMakerFail}, UserFail: ${isUserFail}`);
+                            liquidatorLogger.info(`MakerFail: ${isMakerFail}, UserFail: ${isUserFail}, MakerSuccess: ${isMakerSuccess}`);
                             const checkChallengeParams = checkChallengeParamsList.filter(item => item.sourceTxHash.toLowerCase() === hash.toLowerCase());
                             if (checkChallengeParams && checkChallengeParams.length) {
                                 return await this.arbitrationService.checkChallenge(checkChallengeParams);
