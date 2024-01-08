@@ -14,6 +14,7 @@ export class AppService {
     async setConfig(configParams: any) {
         const { privateKey, secretKey, rpc, debug, makerApiEndpoint, makerList, watchWalletList,
             gasLimit, maxFeePerGas, maxPriorityFeePerGas, liquidatePrivateKey, telegramToken, telegramChatId,
+            heartbeatApiEndpoint
         } = configParams;
         if (rpc) {
             try {
@@ -102,6 +103,9 @@ export class AppService {
         }
         if (debug) {
             arbitrationConfig.debug = +debug;
+        }
+        if (heartbeatApiEndpoint) {
+            arbitrationConfig.heartbeatApiEndpoint = heartbeatApiEndpoint;
         }
         const config = JSON.parse(JSON.stringify(arbitrationConfig));
         delete config.privateKey;
