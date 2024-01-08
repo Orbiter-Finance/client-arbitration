@@ -276,11 +276,17 @@ export class ArbitrationJobService {
                             const isUserFail1 = nextChallengeParams.challengeManager.challengeStatuses === 'CREATE' && +nextChallengeParams?.challengeManager?.verifyChallengeDestTimestamp !== 0;
                             const isUserFail2 = nextChallengeParams.challengeManager.challengeStatuses === 'CREATE' && new Date().valueOf() > ((+nextChallengeParams.sourceTxTime + +chainRel.maxVerifyChallengeSourceTxSecond) * 1000);
                             if (!isMakerFail && !isMakerSuccess && !isUserFail1 && !isUserFail2) {
-                                liquidatorLogger.debug(`failure to meet liquidation conditions, 'VERIFY_SOURCE' await ${
-                                    Math.floor((((+nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp + +chainRel.maxVerifyChallengeDestTxSecond) * 1000) - new Date().valueOf()) / 1000)
-                                }s, 'CREATE' await ${
-                                    Math.floor((((+nextChallengeParams.sourceTxTime + +chainRel.maxVerifyChallengeSourceTxSecond) * 1000) - new Date().valueOf()) / 1000)
-                                }s`);
+                                if (nextChallengeParams.challengeManager.challengeStatuses === 'VERIFY_SOURCE') {
+                                    liquidatorLogger.debug(`${hash} failure to meet liquidation conditions, 'VERIFY_SOURCE' await ${
+                                        Math.floor((((+nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp + +chainRel.maxVerifyChallengeDestTxSecond) * 1000) - new Date().valueOf()) / 1000)
+                                    }s`);
+                                } else if (nextChallengeParams.challengeManager.challengeStatuses === 'CREATE') {
+                                    liquidatorLogger.debug(`${hash} failure to meet liquidation conditions, 'CREATE' await ${
+                                        Math.floor((((+nextChallengeParams.sourceTxTime + +chainRel.maxVerifyChallengeSourceTxSecond) * 1000) - new Date().valueOf()) / 1000)
+                                    }s`);
+                                } else {
+                                    liquidatorLogger.debug(`${hash} failure to meet liquidation conditions`);
+                                }
                                 return;
                             }
                             if (isMakerFail) {
