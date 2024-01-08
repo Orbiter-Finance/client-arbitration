@@ -576,8 +576,8 @@ export class ArbitrationService {
             }
         }
 
-        const gasFee = new BigNumber(String(transactionRequest.gasLimit)).multipliedBy(String(transactionRequest.maxPriorityFeePerGas || 0));
-        commonLogger.info(`maxFeePerGas: ${String(transactionRequest.maxFeePerGas)}, maxPriorityFeePerGas: ${String(transactionRequest.maxPriorityFeePerGas)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
+        const gasFee = new BigNumber(String(transactionRequest.gasLimit)).multipliedBy(String(transactionRequest.maxFeePerGas || 0));
+        commonLogger.info(`maxGasFee: ${String(gasFee)}, maxFeePerGas: ${String(transactionRequest.maxFeePerGas)}, maxPriorityFeePerGas: ${String(transactionRequest.maxPriorityFeePerGas)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
 
         const balance = await provider.getBalance(transactionRequest.from);
         if (new BigNumber(String(balance)).lt(gasFee)) {
