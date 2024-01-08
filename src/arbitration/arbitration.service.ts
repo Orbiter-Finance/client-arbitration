@@ -448,6 +448,7 @@ export class ArbitrationService {
                     createChallengeTimestamp
                     liquidationHash
                     challengeManager {
+                      verifyChallengeDestTimestamp
                       verifyChallengeSourceTimestamp
                       owner
                       challengeStatuses
