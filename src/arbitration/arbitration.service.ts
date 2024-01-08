@@ -537,11 +537,6 @@ export class ArbitrationService {
         const provider = new providers.JsonRpcProvider({
             url: arbitrationConfig.rpc,
         });
-        if (arbitrationConfig.gasLimit) {
-            transactionRequest.gasLimit = ethers.BigNumber.from(arbitrationConfig.gasLimit);
-        } else {
-            transactionRequest.gasLimit = ethers.BigNumber.from(1000000);
-        }
 
         if (arbitrationConfig.maxFeePerGas && arbitrationConfig.maxPriorityFeePerGas) {
             transactionRequest.type = 2;

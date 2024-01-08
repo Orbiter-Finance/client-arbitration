@@ -254,7 +254,7 @@ export class ArbitrationJobService {
                             const nextChallengeParams = checkChallengeParamsList[0];
                             const hash = nextChallengeParams.sourceTxHash;
                             if (!hash) return;
-                            const liquidationObj = await this.arbitrationService.getLiquidationData('/arbitrationHash');
+                            const liquidationObj = await this.arbitrationService.getLiquidationData('/arbitrationHash') || {};
                             const hashList = Object.keys(liquidationObj);
                             if (hashList.find(item => item.toLowerCase() === hash.toLowerCase())) {
                                 liquidatorLogger.debug(`${hash.toLowerCase()} exist`);
