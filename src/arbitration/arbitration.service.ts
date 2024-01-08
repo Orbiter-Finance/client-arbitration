@@ -410,7 +410,7 @@ export class ArbitrationService {
             if (!chain) {
                 continue;
             }
-            if (illegalChallengeList.find(item => item === challenger.sourceTxHash)) {
+            if (illegalChallengeList.find(item => item === challenger.challengeManager.verifyChallengeSourceHash)) {
                 continue;
             }
             if (+challenger.sourceTxTime > (Math.floor(new Date().valueOf() / 1000) - +chain.minVerifyChallengeSourceTxSecond)) {
