@@ -251,8 +251,56 @@ export class ArbitrationJobService {
                     for (const owner of arbitrationConfig.makerList) {
                         const checkChallengeParamsList: CheckChallengeParams[] = await this.arbitrationService.getCheckChallengeParams(owner);
                         if (checkChallengeParamsList && checkChallengeParamsList.length) {
-                            const hash = checkChallengeParamsList[0].sourceTxHash;
-                            if (!hash) continue;
+                            const nextChallengeParams = checkChallengeParamsList[0];
+                            const hash = nextChallengeParams.sourceTxHash;
+                            if (!hash) return;
+                            const liquidationObj = await this.arbitrationService.getLiquidationData('/arbitrationHash') || {};
+                            const hashList = Object.keys(liquidationObj);
+                            if (hashList.find(item => item.toLowerCase() === hash.toLowerCase())) {
+                                liquidatorLogger.debug(`${hash.toLowerCase()} exist`);
+                                return;
+                            }
+
+                            const chainRels = await this.arbitrationService.getChainRels();
+                            const chainRel = chainRels.find(item => +item.id === +nextChallengeParams.sourceChainId);
+                            if (!chainRel) {
+                                liquidatorLogger.debug(`none of chainRel, sourceChainId: ${nextChallengeParams.sourceChainId}`);
+                                return;
+                            }
+                            if (!nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp) {
+                                liquidatorLogger.debug(`none of verifyChallengeSourceTimestamp, nextChallengeParams: ${JSON.stringify(nextChallengeParams)}`);
+                                return;
+                            }
+                            const isMakerFail = nextChallengeParams.challengeManager.challengeStatuses === "VERIFY_SOURCE" && new Date().valueOf() > ((+nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp + +chainRel.maxVerifyChallengeDestTxSecond) * 1000);
+                            const isMakerSuccess = nextChallengeParams.challengeManager.challengeStatuses === 'VERIFY_DEST';
+                            const isUserFail1 = nextChallengeParams.challengeManager.challengeStatuses === 'CREATE' && +nextChallengeParams?.challengeManager?.verifyChallengeDestTimestamp !== 0;
+                            const isUserFail2 = nextChallengeParams.challengeManager.challengeStatuses === 'CREATE' && new Date().valueOf() > ((+nextChallengeParams.sourceTxTime + +chainRel.maxVerifyChallengeSourceTxSecond) * 1000);
+                            if (!isMakerFail && !isMakerSuccess && !isUserFail1 && !isUserFail2) {
+                                if (nextChallengeParams.challengeManager.challengeStatuses === 'VERIFY_SOURCE') {
+                                    liquidatorLogger.debug(`${hash} failure to meet liquidation conditions, 'VERIFY_SOURCE' await ${
+                                        Math.floor((((+nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp + +chainRel.maxVerifyChallengeDestTxSecond) * 1000) - new Date().valueOf()) / 1000)
+                                    }s`);
+                                } else if (nextChallengeParams.challengeManager.challengeStatuses === 'CREATE') {
+                                    liquidatorLogger.debug(`${hash} failure to meet liquidation conditions, 'CREATE' await ${
+                                        Math.floor((((+nextChallengeParams.sourceTxTime + +chainRel.maxVerifyChallengeSourceTxSecond) * 1000) - new Date().valueOf()) / 1000)
+                                    }s`);
+                                } else {
+                                    liquidatorLogger.debug(`${hash} failure to meet liquidation conditions`);
+                                }
+                                return;
+                            }
+                            if (isMakerFail) {
+                                liquidatorLogger.info(`MakerFail: ${isMakerFail}, ${new Date().valueOf()} > (${+nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp} + ${+chainRel.maxVerifyChallengeDestTxSecond}) * 1000`);
+                            }
+                            if (isMakerSuccess) {
+                                liquidatorLogger.info(`MakerSuccess: ${isMakerSuccess}, challengeStatuses = 'VERIFY_DEST'`);
+                            }
+                            if (isUserFail1) {
+                                liquidatorLogger.info(`UserFail1: ${isUserFail1}, verifyChallengeDestTimestamp = ${+nextChallengeParams?.challengeManager?.verifyChallengeDestTimestamp}`);
+                            }
+                            if (isUserFail2) {
+                                liquidatorLogger.info(`UserFail2: ${isUserFail2}, ${new Date().valueOf()} > (${+nextChallengeParams.sourceTxTime} + ${+chainRel.maxVerifyChallengeSourceTxSecond}) * 1000`);
+                            }
                             const checkChallengeParams = checkChallengeParamsList.filter(item => item.sourceTxHash.toLowerCase() === hash.toLowerCase());
                             if (checkChallengeParams && checkChallengeParams.length) {
                                 return await this.arbitrationService.checkChallenge(checkChallengeParams);

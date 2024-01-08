@@ -50,6 +50,13 @@ export interface VerifyChallengeDestParams {
 export interface CheckChallengeParams {
     sourceChainId: string;
     sourceTxHash: string;
+    sourceTxTime: string;
     challenger: string;
     mdcAddress: string;
+    challengeManager: {
+        mdcAddr: string;
+        verifyChallengeSourceTimestamp: string;
+        verifyChallengeDestTimestamp: string;
+        challengeStatuses: string;
+    };
 }

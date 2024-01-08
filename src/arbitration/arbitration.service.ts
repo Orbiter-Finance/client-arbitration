@@ -439,6 +439,7 @@ export class ArbitrationService {
                         }
                     },orderBy: challengeNodeNumber, orderDirection: asc) {
                     sourceChainId
+                    sourceTxTime
                     sourceTxBlockNum
                     sourceTxHash
                     challengeId
@@ -447,6 +448,8 @@ export class ArbitrationService {
                     createChallengeTimestamp
                     liquidationHash
                     challengeManager {
+                      verifyChallengeDestTimestamp
+                      verifyChallengeSourceTimestamp
                       owner
                       challengeStatuses
                       mdcAddr
@@ -523,15 +526,18 @@ export class ArbitrationService {
         }
     }
 
+    async getLiquidationData(dataPath) {
+        try {
+            return await liquidationDb.getData(dataPath);
+        } catch (e) {
+            return null;
+        }
+    }
+
     async getGasPrice(transactionRequest: any) {
         const provider = new providers.JsonRpcProvider({
             url: arbitrationConfig.rpc,
         });
-        if (arbitrationConfig.gasLimit) {
-            transactionRequest.gasLimit = ethers.BigNumber.from(arbitrationConfig.gasLimit);
-        } else {
-            transactionRequest.gasLimit = ethers.BigNumber.from(1000000);
-        }
 
         if (arbitrationConfig.maxFeePerGas && arbitrationConfig.maxPriorityFeePerGas) {
             transactionRequest.type = 2;
@@ -547,15 +553,27 @@ export class ArbitrationService {
                     delete transactionRequest.gasPrice;
                 } else {
                     transactionRequest.gasPrice = Math.max(1500000000, +feeData.gasPrice);
-                    commonLogger.info(`Legacy use gasPrice: ${String(transactionRequest.gasPrice)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
+                    commonLogger.info(`Legacy use gasPrice: ${String(transactionRequest.gasPrice)}`);
                 }
             } catch (e) {
                 commonLogger.error('get gas price error:', e);
             }
         }
 
-        const gasFee = new BigNumber(String(transactionRequest.gasLimit)).multipliedBy(String(transactionRequest.maxPriorityFeePerGas || 0));
-        commonLogger.info(`maxFeePerGas: ${String(transactionRequest.maxFeePerGas)}, maxPriorityFeePerGas: ${String(transactionRequest.maxPriorityFeePerGas)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
+        if (arbitrationConfig.gasLimit) {
+            transactionRequest.gasLimit = ethers.BigNumber.from(arbitrationConfig.gasLimit);
+        } else {
+            try {
+                const estimateGas = await provider.estimateGas(transactionRequest) || ethers.BigNumber.from(250000);
+                transactionRequest.gasLimit = ethers.BigNumber.from(new BigNumber(String(estimateGas)).multipliedBy(2).toFixed(0));
+            } catch (e) {
+                commonLogger.error('gasLimit error', e);
+                transactionRequest.gasLimit = ethers.BigNumber.from(500000);
+            }
+        }
+
+        const gasFee = new BigNumber(String(transactionRequest.gasLimit)).multipliedBy(String(transactionRequest.maxFeePerGas || 0));
+        commonLogger.info(`maxGasFee: ${String(gasFee)}, maxFeePerGas: ${String(transactionRequest.maxFeePerGas)}, maxPriorityFeePerGas: ${String(transactionRequest.maxPriorityFeePerGas)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
 
         const balance = await provider.getBalance(transactionRequest.from);
         if (new BigNumber(String(balance)).lt(gasFee)) {
