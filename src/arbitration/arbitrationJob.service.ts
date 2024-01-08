@@ -272,13 +272,25 @@ export class ArbitrationJobService {
                                 return;
                             }
                             const isMakerFail = nextChallengeParams.challengeManager.challengeStatuses === "VERIFY_SOURCE" && new Date().valueOf() > ((+nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp + +chainRel.maxVerifyChallengeDestTxSecond) * 1000);
-                            const isUserFail = nextChallengeParams.challengeManager.challengeStatuses === 'CREATE' && +nextChallengeParams?.challengeManager?.verifyChallengeDestTimestamp !== 0 || new Date().valueOf() > ((+nextChallengeParams.sourceTxTime + +chainRel.maxVerifyChallengeSourceTxSecond) * 1000);
                             const isMakerSuccess = nextChallengeParams.challengeManager.challengeStatuses === 'VERIFY_DEST';
-                            if (!isMakerFail && !isUserFail && !isMakerSuccess) {
+                            const isUserFail1 = nextChallengeParams.challengeManager.challengeStatuses === 'CREATE' && +nextChallengeParams?.challengeManager?.verifyChallengeDestTimestamp !== 0;
+                            const isUserFail2 = nextChallengeParams.challengeManager.challengeStatuses === 'CREATE' && new Date().valueOf() > ((+nextChallengeParams.sourceTxTime + +chainRel.maxVerifyChallengeSourceTxSecond) * 1000);
+                            if (!isMakerFail && !isMakerSuccess && !isUserFail1 && !isUserFail2) {
                                 liquidatorLogger.debug('failure to meet liquidation conditions');
                                 return;
                             }
-                            liquidatorLogger.info(`MakerFail: ${isMakerFail}, UserFail: ${isUserFail}, MakerSuccess: ${isMakerSuccess}`);
+                            if (isMakerFail) {
+                                liquidatorLogger.info(`MakerFail: ${isMakerFail}, ${new Date().valueOf()} > ${((+nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp + +chainRel.maxVerifyChallengeDestTxSecond) * 1000)}`);
+                            }
+                            if (isMakerSuccess) {
+                                liquidatorLogger.info(`MakerSuccess: ${isMakerSuccess}, challengeStatuses = 'VERIFY_DEST'`);
+                            }
+                            if (isUserFail1) {
+                                liquidatorLogger.info(`UserFail1: ${isUserFail1}, verifyChallengeDestTimestamp = ${+nextChallengeParams?.challengeManager?.verifyChallengeDestTimestamp}`);
+                            }
+                            if (isUserFail2) {
+                                liquidatorLogger.info(`UserFail2: ${isUserFail2}, ${new Date().valueOf()} > ${((+nextChallengeParams.sourceTxTime + +chainRel.maxVerifyChallengeSourceTxSecond) * 1000)}`);
+                            }
                             const checkChallengeParams = checkChallengeParamsList.filter(item => item.sourceTxHash.toLowerCase() === hash.toLowerCase());
                             if (checkChallengeParams && checkChallengeParams.length) {
                                 return await this.arbitrationService.checkChallenge(checkChallengeParams);
