@@ -415,7 +415,7 @@ export class ArbitrationService {
             }
             if (+challenger.sourceTxTime > (Math.floor(new Date().valueOf() / 1000) - +chain.minVerifyChallengeSourceTxSecond)) {
                 makerLogger.info(`IllegalChallenges ${JSON.stringify(challenger)}`);
-                await telegramBot.sendMessage(`IllegalChallenges ${challenger.sourceTxTime} > ${(Math.floor(new Date().valueOf() / 1000) - +chain.minVerifyChallengeSourceTxSecond)} sourceTxHash: ${challenger.sourceTxHash}, verifyChallengeSourceHash: ${challenger.challengeManager.verifyChallengeSourceHash}`);
+                await telegramBot.sendMessage(`IllegalChallenges ${challenger.sourceTxTime} > ${(Math.floor(new Date().valueOf() / 1000) - +chain.minVerifyChallengeSourceTxSecond)} sourceTxHash: ${challenger.sourceTxHash}`);
                 illegalChallengeList.push(challenger.challengeManager.verifyChallengeSourceHash);
             }
         }

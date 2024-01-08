@@ -41,6 +41,5 @@ lerna-debug.log*
 
 deploy.sh
 
-.env
 prisma/thegraph
 prisma/bridge
