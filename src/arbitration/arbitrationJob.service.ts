@@ -280,7 +280,7 @@ export class ArbitrationJobService {
                                 return;
                             }
                             if (isMakerFail) {
-                                liquidatorLogger.info(`MakerFail: ${isMakerFail}, ${new Date().valueOf()} > ${((+nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp + +chainRel.maxVerifyChallengeDestTxSecond) * 1000)}`);
+                                liquidatorLogger.info(`MakerFail: ${isMakerFail}, ${new Date().valueOf()} > (${+nextChallengeParams?.challengeManager?.verifyChallengeSourceTimestamp} + ${+chainRel.maxVerifyChallengeDestTxSecond}) * 1000`);
                             }
                             if (isMakerSuccess) {
                                 liquidatorLogger.info(`MakerSuccess: ${isMakerSuccess}, challengeStatuses = 'VERIFY_DEST'`);
@@ -289,7 +289,7 @@ export class ArbitrationJobService {
                                 liquidatorLogger.info(`UserFail1: ${isUserFail1}, verifyChallengeDestTimestamp = ${+nextChallengeParams?.challengeManager?.verifyChallengeDestTimestamp}`);
                             }
                             if (isUserFail2) {
-                                liquidatorLogger.info(`UserFail2: ${isUserFail2}, ${new Date().valueOf()} > ${((+nextChallengeParams.sourceTxTime + +chainRel.maxVerifyChallengeSourceTxSecond) * 1000)}`);
+                                liquidatorLogger.info(`UserFail2: ${isUserFail2}, ${new Date().valueOf()} > (${+nextChallengeParams.sourceTxTime} + ${+chainRel.maxVerifyChallengeSourceTxSecond}) * 1000`);
                             }
                             const checkChallengeParams = checkChallengeParamsList.filter(item => item.sourceTxHash.toLowerCase() === hash.toLowerCase());
                             if (checkChallengeParams && checkChallengeParams.length) {
