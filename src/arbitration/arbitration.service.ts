@@ -16,6 +16,7 @@ import { challengerLogger, commonLogger, liquidatorLogger, makerLogger } from '.
 import { telegramBot } from '../utils/telegram';
 
 let accountNonce = 0;
+const illegalChallengeList = [];
 
 const keyv = new Keyv();
 
@@ -373,6 +374,51 @@ export class ArbitrationService {
             list.push({ verifyPassChallenger, sourceTxHash });
         }
         return list;
+    }
+
+    async checkIllegalChallenges(owner: string) {
+        const queryStr = `
+                {
+                  createChallenges(
+                    where: {
+                        challengeManager_: {
+                          owner: "${owner.toLowerCase()}",
+                          challengeStatuses:CREATE,
+                          
+                        }
+                    }) {
+                    sourceChainId
+                    sourceTxHash
+                    challenger
+                    createChallengeTimestamp
+                    sourceTxTime
+                    challengeManager {
+                      verifyChallengeSourceHash
+                      challengeStatuses
+                    }
+                  }
+                }
+          `;
+        const result = await this.querySubgraph(queryStr);
+        const challengerList = result?.data?.createChallenges;
+        if (!challengerList || !challengerList.length) {
+            return [];
+        }
+        const chainRels = await this.getChainRels();
+        for (const challenger of challengerList) {
+            const chain = chainRels.find(c => +c.id === +challenger.sourceChainId);
+            if (!chain) {
+                continue;
+            }
+            if (illegalChallengeList.find(item => item === challenger.challengeManager.verifyChallengeSourceHash)) {
+                continue;
+            }
+            if (+challenger.sourceTxTime > (Math.floor(new Date().valueOf() / 1000) - +chain.minVerifyChallengeSourceTxSecond)) {
+                makerLogger.info(`IllegalChallenges ${JSON.stringify(challenger)}`);
+                await telegramBot.sendMessage(`IllegalChallenges ${challenger.sourceTxTime} > ${(Math.floor(new Date().valueOf() / 1000) - +chain.minVerifyChallengeSourceTxSecond)} sourceTxHash: ${challenger.sourceTxHash}, verifyChallengeSourceHash: ${challenger.challengeManager.verifyChallengeSourceHash}`);
+                illegalChallengeList.push(challenger.challengeManager.verifyChallengeSourceHash);
+            }
+        }
     }
 
     async getVerifiedDataHashList(sourceTxHash: string) {
