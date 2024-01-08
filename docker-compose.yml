@@ -8,8 +8,8 @@ services:
     container_name: arbitration-client
     restart: always
     environment:
-      UserVersion: '0.0.0'
-      MakerVersion: '0.0.0'
+      UserVersion: '${UserVersion}'
+      MakerVersion: '${MakerVersion}'
     ports:
       - '3000:3000'
     networks:

@@ -223,12 +223,12 @@ export class ArbitrationJobService {
         const txStatusRes = await HTTPGet(`${arbitrationConfig.makerApiEndpoint}/version`);
         const isMaker = !!arbitrationConfig.makerList;
         const userVersion = txStatusRes?.data?.UserVersion;
-        if (userVersion && !isMaker && userVersion !== process.env.UserVersion) {
+        if (userVersion && process.env.UserVersion && !isMaker && userVersion !== process.env.UserVersion) {
             versionUpdate = userVersion.split('.')[0] !== process.env.UserVersion.split('.')[0];
             commonLogger.error('Please pull the latest code from the main branch due to version updates.');
         }
         const makerVersion = txStatusRes?.data?.MakerVersion;
-        if (makerVersion && isMaker && makerVersion !== process.env.MakerVersion) {
+        if (makerVersion && process.env.MakerVersion && isMaker && makerVersion !== process.env.MakerVersion) {
             versionUpdate = makerVersion.split('.')[0] !== process.env.MakerVersion.split('.')[0];
             commonLogger.error('Please pull the latest code from the main branch due to version updates.');
         }
