@@ -7,7 +7,8 @@ export let arbitrationConfig: {
     makerApiEndpoint?: string, subgraphEndpoint?: string,
     makerList?: string[], watchWalletList?: string[],
     gasLimit?: string, maxFeePerGas?: string, maxPriorityFeePerGas?: string,
-    liquidatePrivateKey?: string, telegramToken?: string, telegramChatId?: string
+    liquidatePrivateKey?: string, telegramToken?: string, telegramChatId?: string,
+    heartbeatApiEndpoint?: string
 } = {};
 
 export const configdb = new JsonDB(new Config('runtime/config', true, false, '/'));

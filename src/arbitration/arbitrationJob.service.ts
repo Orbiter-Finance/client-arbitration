@@ -229,6 +229,13 @@ export class ArbitrationJobService {
         }
     }
 
+    @Interval(1000 * 30)
+    async heartbeat() {
+        if (arbitrationConfig.heartbeatApiEndpoint) {
+            await HTTPGet(arbitrationConfig.heartbeatApiEndpoint);
+        }
+    }
+
     async liquidation() {
         if (!arbitrationConfig.liquidatePrivateKey) {
             return;
