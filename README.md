@@ -31,7 +31,7 @@ If you are on the arbitration client side, refer to the following configuration:
     --data '{
         "privateKey": "Enter your private key",
         "secretKey": "Arbitrary string for encrypting the private key",
-        "rpc": "Ether mainnet RPC node, e.g., https://eth.llamarpc.com",
+        "rpc": "Ether mainnet RPC node, e.g., https://1rpc.io/eth",
         "debug": 1,
         "makerApiEndpoint": "https://api.orbiter.finance/maker-openapi",
         "gasLimit": "",
@@ -49,7 +49,7 @@ If you are on the maker response side, refer to the following configuration:
     --data '{
         "privateKey": "Enter your private key",
         "secretKey": "Arbitrary string for encrypting the private key",
-        "rpc": "Ether mainnet RPC node, e.g., https://eth.llamarpc.com",
+        "rpc": "Ether mainnet RPC node, e.g., https://1rpc.io/eth",
         "debug": 1,
         "makerApiEndpoint": "https://api.orbiter.finance/maker-openapi",
         "gasLimit": "",
