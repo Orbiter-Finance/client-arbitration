@@ -177,6 +177,11 @@ export class ArbitrationJobService {
         mutex.runExclusive(async () => {
             try {
                 for (const makerAddress of makerList) {
+                    try {
+                        await this.arbitrationService.checkIllegalChallenges(makerAddress);
+                    } catch (e) {
+                        makerLogger.error('checkIllegalChallenges error', e);
+                    }
                     const challengerList = await this.arbitrationService.getVerifyPassChallenger(makerAddress);
                     for (const challengerData of challengerList) {
                         const hash = challengerData.sourceTxHash.toLowerCase();
