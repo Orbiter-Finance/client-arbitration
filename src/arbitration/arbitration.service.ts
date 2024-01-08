@@ -525,6 +525,14 @@ export class ArbitrationService {
         }
     }
 
+    async getLiquidationData(dataPath) {
+        try {
+            return await liquidationDb.getData(dataPath);
+        } catch (e) {
+            return null;
+        }
+    }
+
     async getGasPrice(transactionRequest: any) {
         const provider = new providers.JsonRpcProvider({
             url: arbitrationConfig.rpc,
@@ -549,10 +557,22 @@ export class ArbitrationService {
                     delete transactionRequest.gasPrice;
                 } else {
                     transactionRequest.gasPrice = Math.max(1500000000, +feeData.gasPrice);
-                    commonLogger.info(`Legacy use gasPrice: ${String(transactionRequest.gasPrice)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
+                    commonLogger.info(`Legacy use gasPrice: ${String(transactionRequest.gasPrice)}`);
                 }
             } catch (e) {
                 commonLogger.error('get gas price error:', e);
+            }
+        }
+
+        if (arbitrationConfig.gasLimit) {
+            transactionRequest.gasLimit = ethers.BigNumber.from(arbitrationConfig.gasLimit);
+        } else {
+            try {
+                const estimateGas = await provider.estimateGas(transactionRequest) || ethers.BigNumber.from(250000);
+                transactionRequest.gasLimit = ethers.BigNumber.from(new BigNumber(String(estimateGas)).multipliedBy(2).toFixed(0));
+            } catch (e) {
+                commonLogger.error('gasLimit error', e);
+                transactionRequest.gasLimit = ethers.BigNumber.from(500000);
             }
         }
 

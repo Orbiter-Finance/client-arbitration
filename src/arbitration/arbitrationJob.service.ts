@@ -251,9 +251,17 @@ export class ArbitrationJobService {
                     for (const owner of arbitrationConfig.makerList) {
                         const checkChallengeParamsList: CheckChallengeParams[] = await this.arbitrationService.getCheckChallengeParams(owner);
                         if (checkChallengeParamsList && checkChallengeParamsList.length) {
-                            const chainRels = await this.arbitrationService.getChainRels();
                             const nextChallengeParams = checkChallengeParamsList[0];
+                            const hash = nextChallengeParams.sourceTxHash;
+                            if (!hash) return;
+                            const liquidationObj = await this.arbitrationService.getLiquidationData('/arbitrationHash');
+                            const hashList = Object.keys(liquidationObj);
+                            if (hashList.find(item => item.toLowerCase() === hash.toLowerCase())) {
+                                liquidatorLogger.debug(`${hash.toLowerCase()} exist`);
+                                return;
+                            }
 
+                            const chainRels = await this.arbitrationService.getChainRels();
                             const chainRel = chainRels.find(item => +item.id === +nextChallengeParams.sourceChainId);
                             if (!chainRel) {
                                 liquidatorLogger.debug(`none of chainRel, sourceChainId: ${nextChallengeParams.sourceChainId}`);
@@ -269,9 +277,7 @@ export class ArbitrationJobService {
                                 liquidatorLogger.debug('failure to meet liquidation conditions');
                                 return;
                             }
-                            const hash = nextChallengeParams.sourceTxHash;
-                            if (!hash) return;
-                            liquidatorLogger.info(`makerFail: ${isMakerFail}, userFail: ${isUserFail}`);
+                            liquidatorLogger.info(`MakerFail: ${isMakerFail}, UserFail: ${isUserFail}`);
                             const checkChallengeParams = checkChallengeParamsList.filter(item => item.sourceTxHash.toLowerCase() === hash.toLowerCase());
                             if (checkChallengeParams && checkChallengeParams.length) {
                                 return await this.arbitrationService.checkChallenge(checkChallengeParams);
