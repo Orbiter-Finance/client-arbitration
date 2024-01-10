@@ -692,6 +692,10 @@ export class ArbitrationService {
     }
 
     async handleUserArbitration(tx: ArbitrationTransaction) {
+        await arbitrationJsonDb.push(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`, {
+            message: 'Preparing challenge',
+            isNeedProof: 0,
+        });
         challengerLogger.info(`handleUserArbitration begin ${tx.sourceTxHash}`);
         const ifa = new ethers.utils.Interface(MDCAbi);
         const mdcs = await this.getMDCs(tx.sourceMaker);
@@ -748,7 +752,6 @@ export class ArbitrationService {
         try {
             const res: any = await HTTPGet(`${arbitrationConfig.makerApiEndpoint}/transaction/challenge/${tx.sourceTxHash}`);
             if (res?.data) {
-                await arbitrationJsonDb.delete(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`);
                 challengerLogger.info(`a submission challenge record already exists for this transaction, please try again later. ${JSON.stringify(res.data)}`);
                 return;
             }
@@ -779,10 +782,6 @@ export class ArbitrationService {
             ethers.BigNumber.from(new BigNumber(freezeAmount).plus(tx.minChallengeDepositAmount || 0).toString()) :
             ethers.BigNumber.from(0);
         challengerLogger.info(`challenger: ${challenger}, sendValue: ${String(sendValue)}`);
-        await arbitrationJsonDb.push(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`, {
-            message: 'Preparing challenge',
-            isNeedProof: 0,
-        });
         let response;
         try {
             response = await this.send(mdcAddress, sendValue, data);
