@@ -46,6 +46,16 @@ export class ArbitrationService {
         return HTTPPost(subgraphEndpoint, { query });
     }
 
+    async submitError(message) {
+        try {
+            await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/error`, {
+                message: `${process.env.UserVersion || ''}-${process.env.MakerVersion || ''} ${message}`,
+            });
+        } catch (e) {
+
+        }
+    }
+
     async verifyArbitrationConditions(sourceTx: ArbitrationTransaction): Promise<boolean> {
         // Arbitration time reached
         const chainRels = await this.getChainRels();
@@ -610,11 +620,12 @@ export class ArbitrationService {
             transactionRequest.gasLimit = ethers.BigNumber.from(arbitrationConfig.gasLimit);
         } else {
             try {
-                const estimateGas = await provider.estimateGas(transactionRequest) || ethers.BigNumber.from(250000);
+                const estimateGas = await provider.estimateGas(transactionRequest) || ethers.BigNumber.from(500000);
                 transactionRequest.gasLimit = ethers.BigNumber.from(new BigNumber(String(estimateGas)).multipliedBy(2).toFixed(0));
             } catch (e) {
                 commonLogger.error('gasLimit error', e);
-                transactionRequest.gasLimit = ethers.BigNumber.from(500000);
+                await this.submitError(`gasLimit error: ${JSON.stringify(e)}, transactionRequest: ${JSON.stringify(transactionRequest)}`);
+                transactionRequest.gasLimit = ethers.BigNumber.from(1000000);
             }
         }
 
@@ -772,7 +783,14 @@ export class ArbitrationService {
             message: 'Preparing challenge',
             isNeedProof: 0,
         });
-        const response = await this.send(mdcAddress, sendValue, data);
+        let response;
+        try {
+            response = await this.send(mdcAddress, sendValue, data);
+        } catch (e) {
+            await this.submitError(`challenge error: ${JSON.stringify(e)},encodeData: ${JSON.stringify(encodeData)}`);
+            throw new Error(e);
+        }
+
         challengerLogger.debug(`handleUserArbitration tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`, {
             challenger,
@@ -871,7 +889,13 @@ export class ArbitrationService {
             submitSourceTxHash: txData.submitSourceTxHash,
             isNeedProof: 0
         });
-        const response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
+        let response;
+        try {
+            response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
+        } catch (e) {
+            await this.submitError(`verifyChallengeSource error: ${JSON.stringify(e)},formatRule: ${formatRule},encodeData: ${JSON.stringify(encodeData)}`);
+            throw new Error(e);
+        }
         challengerLogger.debug(`userSubmitProof tx: ${JSON.stringify(response)}`);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.hash}`, {
             challenger: txData.challenger,
