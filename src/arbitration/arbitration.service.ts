@@ -787,7 +787,7 @@ export class ArbitrationService {
         try {
             response = await this.send(mdcAddress, sendValue, data);
         } catch (e) {
-            await this.submitError(`challenge error: ${JSON.stringify(e)},encodeData: ${JSON.stringify(encodeData)}`);
+            await this.submitError(`challenge error: ${JSON.stringify(e)}, encodeData: ${JSON.stringify(encodeData)}`);
             throw new Error(e);
         }
 
@@ -893,7 +893,7 @@ export class ArbitrationService {
         try {
             response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
         } catch (e) {
-            await this.submitError(`verifyChallengeSource error: ${JSON.stringify(e)},formatRule: ${formatRule},encodeData: ${JSON.stringify(encodeData)}`);
+            await this.submitError(`verifyChallengeSource error: ${JSON.stringify(e)}, formatRule: ${formatRule}, encodeData: ${JSON.stringify(encodeData)}`);
             throw new Error(e);
         }
         challengerLogger.debug(`userSubmitProof tx: ${JSON.stringify(response)}`);
