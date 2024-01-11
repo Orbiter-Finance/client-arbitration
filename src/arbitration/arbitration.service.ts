@@ -635,7 +635,7 @@ export class ArbitrationService {
         const balance = await provider.getBalance(transactionRequest.from);
         let gasFeeMulti = 1;
         if (transactionRequest?.data && transactionRequest.data.indexOf('0x4fdea68e') === 0) {
-            gasFeeMulti = 2;
+            gasFeeMulti = 3;
         }
         const needBalance = new BigNumber(gasFee).multipliedBy(gasFeeMulti).plus(String(transactionRequest.value || 0));
         if (new BigNumber(String(balance)).lt(needBalance)) {
