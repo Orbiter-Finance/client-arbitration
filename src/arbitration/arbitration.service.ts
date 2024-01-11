@@ -633,9 +633,14 @@ export class ArbitrationService {
         commonLogger.info(`maxGasFee: ${String(gasFee)}, maxFeePerGas: ${String(transactionRequest.maxFeePerGas)}, maxPriorityFeePerGas: ${String(transactionRequest.maxPriorityFeePerGas)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
 
         const balance = await provider.getBalance(transactionRequest.from);
-        if (new BigNumber(String(balance)).lt(new BigNumber(gasFee).multipliedBy(2).plus(transactionRequest.value || 0))) {
-            commonLogger.error(`${transactionRequest.from} Insufficient Balance: ${String(balance)} < ${String(gasFee)}`);
-            throw new Error(`${transactionRequest.from} Insufficient Balance: ${String(balance)} < ${String(new BigNumber(gasFee).multipliedBy(2).plus(transactionRequest.value || 0))}`);
+        let gasFeeMulti = 1;
+        if (transactionRequest?.data && transactionRequest.data.indexOf('0x4fdea68e') === 0) {
+            gasFeeMulti = 2;
+        }
+        const needBalance = new BigNumber(gasFee).multipliedBy(gasFeeMulti).plus(String(transactionRequest.value || 0));
+        if (new BigNumber(String(balance)).lt(needBalance)) {
+            commonLogger.error(`${transactionRequest.from} Insufficient Balance: ${String(balance)} < ${String(needBalance)}`);
+            throw new Error(`${transactionRequest.from} Insufficient Balance: ${String(balance)} < ${String(needBalance)}`);
         }
 
         return gasFee;
