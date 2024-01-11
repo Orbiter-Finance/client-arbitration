@@ -527,6 +527,40 @@ export class ArbitrationService {
         return list;
     }
 
+    async getChallengeHashList(sourceTxHash: string): Promise<string[]> {
+        const queryStr = `
+                {
+                  createChallenges(
+                    where: {
+                        sourceTxHash: "${sourceTxHash.toLowerCase()}",
+                        challengeManager_: {
+                            challengeStatuses: CREATE
+                        }
+                    }) {
+                    challengeManager {
+                      createChallenge {
+                        createChallengeHash
+                      }
+                    }
+                  }
+                }
+          `;
+        const result = await this.querySubgraph(queryStr);
+        const challengerList = result?.data?.createChallenges;
+        if (!challengerList || !challengerList.length) {
+            return [];
+        }
+        const challengeHashList = [];
+        for (const challenger of challengerList) {
+            if (challenger.createChallenge) {
+                for (const createChallenge of challenger.createChallenge) {
+                    challengeHashList.push(createChallenge.createChallengeHash);
+                }
+            }
+        }
+        return challengeHashList;
+    }
+
     async getEBCValue(owner: string, ebcAddress: string, ruleId: string, sourceChain: string, destChain: string, amount: string) {
         const provider = new providers.JsonRpcProvider({
             url: arbitrationConfig.rpc,
@@ -823,7 +857,20 @@ export class ArbitrationService {
             challengerLogger.error('proof is empty');
             return;
         }
+        await arbitrationJsonDb.push(`/arbitrationHash/${txData.hash}`, {
+            message: 'Preparing verifyChallengeSource',
+            challenger: txData.challenger,
+            submitSourceTxHash: txData.submitSourceTxHash,
+            isNeedProof: 0
+        });
         challengerLogger.info(`userSubmitProof begin ${txData.hash}`);
+        const challengeHashList = await this.getChallengeHashList(txData.hash);
+        const verifyChallengeSourceInfo = challengeHashList.find(item => item.toLowerCase() === txData.submitSourceTxHash.toLowerCase());
+        if (!verifyChallengeSourceInfo) {
+            challengerLogger.error(`records not in subgraph, please confirm the delivery status of the ${txData.submitSourceTxHash} transaction`);
+            await this.submitError(`${txData.submitSourceTxHash} records not in subgraph`);
+            return;
+        }
         const mdcs = await this.getMDCs(txData.sourceMaker);
         if (!mdcs || !mdcs.length) {
             challengerLogger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
@@ -890,12 +937,6 @@ export class ArbitrationService {
         ];
         challengerLogger.info(`verifyChallengeSource encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('verifyChallengeSource', encodeData);
-        await arbitrationJsonDb.push(`/arbitrationHash/${txData.hash}`, {
-            message: 'Preparing verifyChallengeSource',
-            challenger: txData.challenger,
-            submitSourceTxHash: txData.submitSourceTxHash,
-            isNeedProof: 0
-        });
         let response;
         try {
             response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
