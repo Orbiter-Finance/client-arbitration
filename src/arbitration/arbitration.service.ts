@@ -552,8 +552,8 @@ export class ArbitrationService {
         }
         const challengeHashList = [];
         for (const challenger of challengerList) {
-            if (challenger.createChallenge) {
-                for (const createChallenge of challenger.createChallenge) {
+            if (challenger?.challengeManager?.createChallenge) {
+                for (const createChallenge of challenger.challengeManager.createChallenge) {
                     challengeHashList.push(createChallenge.createChallengeHash);
                 }
             }
@@ -667,9 +667,9 @@ export class ArbitrationService {
         commonLogger.info(`maxGasFee: ${String(gasFee)}, maxFeePerGas: ${String(transactionRequest.maxFeePerGas)}, maxPriorityFeePerGas: ${String(transactionRequest.maxPriorityFeePerGas)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
 
         const balance = await provider.getBalance(transactionRequest.from);
-        let gasFeeMulti = 1;
+        let gasFeeMulti = 2;
         if (transactionRequest?.data && transactionRequest.data.indexOf('0x4fdea68e') === 0) {
-            gasFeeMulti = 3;
+            gasFeeMulti = 4;
         }
         const needBalance = new BigNumber(gasFee).multipliedBy(gasFeeMulti).plus(String(transactionRequest.value || 0));
         if (new BigNumber(String(balance)).lt(needBalance)) {
