@@ -527,6 +527,40 @@ export class ArbitrationService {
         return list;
     }
 
+    async getChallengeHashList(sourceTxHash: string): Promise<string[]> {
+        const queryStr = `
+                {
+                  createChallenges(
+                    where: {
+                        sourceTxHash: "${sourceTxHash.toLowerCase()}",
+                        challengeManager_: {
+                            challengeStatuses: CREATE
+                        }
+                    }) {
+                    challengeManager {
+                      createChallenge {
+                        createChallengeHash
+                      }
+                    }
+                  }
+                }
+          `;
+        const result = await this.querySubgraph(queryStr);
+        const challengerList = result?.data?.createChallenges;
+        if (!challengerList || !challengerList.length) {
+            return [];
+        }
+        const challengeHashList = [];
+        for (const challenger of challengerList) {
+            if (challenger?.challengeManager?.createChallenge) {
+                for (const createChallenge of challenger.challengeManager.createChallenge) {
+                    challengeHashList.push(createChallenge.createChallengeHash);
+                }
+            }
+        }
+        return challengeHashList;
+    }
+
     async getEBCValue(owner: string, ebcAddress: string, ruleId: string, sourceChain: string, destChain: string, amount: string) {
         const provider = new providers.JsonRpcProvider({
             url: arbitrationConfig.rpc,
@@ -633,9 +667,9 @@ export class ArbitrationService {
         commonLogger.info(`maxGasFee: ${String(gasFee)}, maxFeePerGas: ${String(transactionRequest.maxFeePerGas)}, maxPriorityFeePerGas: ${String(transactionRequest.maxPriorityFeePerGas)}, gasLimit: ${String(transactionRequest.gasLimit)}`);
 
         const balance = await provider.getBalance(transactionRequest.from);
-        let gasFeeMulti = 1;
+        let gasFeeMulti = 2;
         if (transactionRequest?.data && transactionRequest.data.indexOf('0x4fdea68e') === 0) {
-            gasFeeMulti = 3;
+            gasFeeMulti = 4;
         }
         const needBalance = new BigNumber(gasFee).multipliedBy(gasFeeMulti).plus(String(transactionRequest.value || 0));
         if (new BigNumber(String(balance)).lt(needBalance)) {
@@ -683,7 +717,7 @@ export class ArbitrationService {
         return response;
     }
 
-    async confirmTx(hash) {
+    async confirmTx(hash, sendTime = new Date().valueOf()) {
         await new Promise(resolve => setTimeout(resolve, 3000));
         const provider = new providers.JsonRpcProvider({
             url: arbitrationConfig.rpc,
@@ -691,7 +725,10 @@ export class ArbitrationService {
         const receipt = await provider.getTransactionReceipt(hash);
         if (!receipt?.blockNumber) {
             console.log(`${hash} transaction status confirmation in progress ...`);
-            return await this.confirmTx(hash);
+            if (new Date().valueOf() - sendTime > 60 * 1000) {
+                console.warn(`${hash} exec ${((new Date().valueOf() - sendTime) / 1000).toFixed(3)}s, Long time did not send successfully may be the balance is insufficient, please recharge and restart the program`);
+            }
+            return await this.confirmTx(hash, sendTime);
         }
         return receipt;
     }
@@ -796,14 +833,14 @@ export class ArbitrationService {
         }
 
         challengerLogger.debug(`handleUserArbitration tx: ${JSON.stringify(response)}`);
+        challengerLogger.info(`handleUserArbitration send ${tx.sourceTxHash} ${response.hash}`);
+        const receipt = await this.confirmTx(response.hash);
         await arbitrationJsonDb.push(`/arbitrationHash/${tx.sourceTxHash.toLowerCase()}`, {
             challenger,
             fromChainId: tx.sourceChainId,
             submitSourceTxHash: response.hash,
             isNeedProof: 1
         });
-        challengerLogger.info(`handleUserArbitration send ${tx.sourceTxHash} ${response.hash}`);
-        const receipt = await this.confirmTx(response.hash);
         challengerLogger.info(`handleUserArbitration success ${JSON.stringify(receipt)}`);
         try {
             await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
@@ -820,7 +857,20 @@ export class ArbitrationService {
             challengerLogger.error('proof is empty');
             return;
         }
+        await arbitrationJsonDb.push(`/arbitrationHash/${txData.hash}`, {
+            message: 'Preparing verifyChallengeSource',
+            challenger: txData.challenger,
+            submitSourceTxHash: txData.submitSourceTxHash,
+            isNeedProof: 0
+        });
         challengerLogger.info(`userSubmitProof begin ${txData.hash}`);
+        const challengeHashList = await this.getChallengeHashList(txData.hash);
+        const challengeHash = challengeHashList.find(item => item.toLowerCase() === txData.submitSourceTxHash.toLowerCase());
+        if (!challengeHash) {
+            challengerLogger.error(`records not in subgraph, please confirm the delivery status of the ${txData.submitSourceTxHash} transaction`);
+            await this.submitError(`${txData.submitSourceTxHash} records not in subgraph`);
+            return;
+        }
         const mdcs = await this.getMDCs(txData.sourceMaker);
         if (!mdcs || !mdcs.length) {
             challengerLogger.error(`none of MDC, makerAddress: ${txData.sourceMaker}`);
@@ -887,12 +937,6 @@ export class ArbitrationService {
         ];
         challengerLogger.info(`verifyChallengeSource encodeData: ${JSON.stringify(encodeData)}`);
         const data = ifa.encodeFunctionData('verifyChallengeSource', encodeData);
-        await arbitrationJsonDb.push(`/arbitrationHash/${txData.hash}`, {
-            message: 'Preparing verifyChallengeSource',
-            challenger: txData.challenger,
-            submitSourceTxHash: txData.submitSourceTxHash,
-            isNeedProof: 0
-        });
         let response;
         try {
             response = await this.send(mdcAddress, ethers.BigNumber.from(0), data);
@@ -901,14 +945,14 @@ export class ArbitrationService {
             throw new Error(e);
         }
         challengerLogger.debug(`userSubmitProof tx: ${JSON.stringify(response)}`);
+        challengerLogger.info(`userSubmitProof end ${txData.hash} ${response.hash}`);
+        const receipt = await this.confirmTx(response.hash);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.hash}`, {
             challenger: txData.challenger,
             submitSourceTxHash: txData.submitSourceTxHash,
             verifyChallengeSourceHash: response.hash,
             isNeedProof: 0
         });
-        challengerLogger.info(`userSubmitProof end ${txData.hash} ${response.hash}`);
-        const receipt = await this.confirmTx(response.hash);
         challengerLogger.info(`userSubmitProof success ${JSON.stringify(receipt)}`);
         try {
             await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
@@ -1041,13 +1085,13 @@ export class ArbitrationService {
             throw new Error(e);
         }
         makerLogger.debug(`makerSubmitProof tx: ${JSON.stringify(response)}`);
+        makerLogger.info(`makerSubmitProof end sourceId: ${txData.sourceId} verifyChallengeDestHash: ${response.hash}`);
+        const receipt = await this.confirmTx(response.hash);
         await arbitrationJsonDb.push(`/arbitrationHash/${txData.sourceId.toLowerCase()}`, {
             verifyChallengeDestHash: response.hash,
             challenger: txData.challenger,
             isNeedProof: 0
         });
-        makerLogger.info(`makerSubmitProof end sourceId: ${txData.sourceId} verifyChallengeDestHash: ${response.hash}`);
-        const receipt = await this.confirmTx(response.hash);
         makerLogger.info(`makerSubmitProof success ${JSON.stringify(receipt)}`);
         try {
             await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
@@ -1086,11 +1130,11 @@ export class ArbitrationService {
         }
 
         liquidatorLogger.debug(`CheckChallenge tx: ${JSON.stringify(response)}`);
+        const receipt = await this.confirmTx(response.hash);
         await liquidationDb.push(`/arbitrationHash/${sourceTxHash.toLowerCase()}`, {
             challenger: challengerList,
             checkChallengeHash: response.hash
         });
-        const receipt = await this.confirmTx(response.hash);
         liquidatorLogger.info(`checkChallenge success ${JSON.stringify(receipt)}`);
         try {
             await HTTPPost(`${arbitrationConfig.makerApiEndpoint}/transaction/record`, {
