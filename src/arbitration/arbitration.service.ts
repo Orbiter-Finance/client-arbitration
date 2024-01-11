@@ -865,8 +865,8 @@ export class ArbitrationService {
         });
         challengerLogger.info(`userSubmitProof begin ${txData.hash}`);
         const challengeHashList = await this.getChallengeHashList(txData.hash);
-        const verifyChallengeSourceInfo = challengeHashList.find(item => item.toLowerCase() === txData.submitSourceTxHash.toLowerCase());
-        if (!verifyChallengeSourceInfo) {
+        const challengeHash = challengeHashList.find(item => item.toLowerCase() === txData.submitSourceTxHash.toLowerCase());
+        if (!challengeHash) {
             challengerLogger.error(`records not in subgraph, please confirm the delivery status of the ${txData.submitSourceTxHash} transaction`);
             await this.submitError(`${txData.submitSourceTxHash} records not in subgraph`);
             return;
