@@ -12,7 +12,9 @@ let versionUpdate = false;
 export class ArbitrationJobService {
     constructor(private arbitrationService: ArbitrationService) {
         try {
-            if (arbitrationConfig.makerApiEndpoint) this.checkVersion();
+            setTimeout(async () => {
+                if (arbitrationConfig.makerApiEndpoint) await this.checkVersion();
+            }, 2000);
         } catch (e) {
         }
         const cron = setInterval(async () => {
