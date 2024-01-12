@@ -11,6 +11,12 @@ let versionUpdate = false;
 @Injectable()
 export class ArbitrationJobService {
     constructor(private arbitrationService: ArbitrationService) {
+        try {
+            setTimeout(async () => {
+                await this.checkVersion();
+            }, 2000);
+        } catch (e) {
+        }
         const cron = setInterval(async () => {
             try {
                 await this.liquidation();
@@ -22,6 +28,9 @@ export class ArbitrationJobService {
 
     @Interval(1000 * 40)
     async syncProof() {
+        if (!arbitrationConfig.makerApiEndpoint) {
+            return;
+        }
         if (versionUpdate) {
             return;
         }
@@ -100,6 +109,9 @@ export class ArbitrationJobService {
     // userArbitrationJob
     @Interval(1000 * 30)
     getListOfUnrefundedTransactions() {
+        if (!arbitrationConfig.makerApiEndpoint) {
+            return;
+        }
         if (versionUpdate) {
             return;
         }
@@ -161,6 +173,9 @@ export class ArbitrationJobService {
     // makerArbitrationJob
     @Interval(1000 * 30)
     getListOfUnresponsiveTransactions() {
+        if (!arbitrationConfig.makerApiEndpoint) {
+            return;
+        }
         if (versionUpdate) {
             return;
         }
@@ -220,6 +235,9 @@ export class ArbitrationJobService {
 
     @Interval(1000 * 60)
     async checkVersion() {
+        if(!arbitrationConfig.makerApiEndpoint){
+            return;
+        }
         const txStatusRes = await HTTPGet(`${arbitrationConfig.makerApiEndpoint}/version`);
         const isMaker = !!arbitrationConfig.makerList;
         const userVersion = txStatusRes?.data?.UserVersion;
