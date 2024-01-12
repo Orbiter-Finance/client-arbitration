@@ -11,7 +11,10 @@ let versionUpdate = false;
 @Injectable()
 export class ArbitrationJobService {
     constructor(private arbitrationService: ArbitrationService) {
-        this.checkVersion();
+        try {
+            if (arbitrationConfig.makerApiEndpoint) this.checkVersion();
+        } catch (e) {
+        }
         const cron = setInterval(async () => {
             try {
                 await this.liquidation();
