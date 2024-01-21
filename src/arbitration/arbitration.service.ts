@@ -828,7 +828,7 @@ export class ArbitrationService {
         try {
             response = await this.send(mdcAddress, sendValue, data);
         } catch (e) {
-            await this.submitError(`challenge error: ${JSON.stringify(e)}, encodeData: ${JSON.stringify(encodeData)}`);
+            await this.submitError(`challenge error: ${JSON.stringify(e)}, message: ${e?.message}, encodeData: ${JSON.stringify(encodeData)}`);
             throw new Error(e);
         }
 

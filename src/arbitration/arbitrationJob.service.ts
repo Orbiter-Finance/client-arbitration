@@ -5,6 +5,7 @@ import { ArbitrationTransaction, CheckChallengeParams } from './arbitration.inte
 import { HTTPGet, HTTPPost } from '../utils';
 import { arbitrationConfig, arbitrationJsonDb, mutex } from '../utils/config';
 import { challengerLogger, commonLogger, liquidatorLogger, Logger, makerLogger } from '../utils/logger';
+import { telegramBot } from '../utils/telegram';
 
 let versionUpdate = false;
 
@@ -21,7 +22,11 @@ export class ArbitrationJobService {
             try {
                 await this.liquidation();
             } catch (e) {
-                clearInterval(cron);
+                liquidatorLogger.error('liquidate error', e);
+                await telegramBot.sendMessage(`liquidate error: ${e?.message ? e.message : e}`);
+                if (!e?.message || e.message.indexOf('AxiosError') === -1) {
+                    clearInterval(cron);
+                }
             }
         }, 1000 * 50);
     }
@@ -334,7 +339,6 @@ export class ArbitrationJobService {
                     liquidatorLogger.debug('liquidate transaction is not in the pending liquidation list');
                 }
             } catch (e) {
-                liquidatorLogger.error('liquidate error', e);
                 await mutex.release();
                 throw new Error(e);
             }
