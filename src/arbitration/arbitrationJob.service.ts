@@ -28,7 +28,7 @@ export class ArbitrationJobService {
                     clearInterval(cron);
                 }
             }
-        }, 1000 * 50);
+        }, 1000 * 120);
     }
 
     @Interval(1000 * 40)
@@ -278,6 +278,7 @@ export class ArbitrationJobService {
                 if (arbitrationConfig.makerList instanceof Array) {
                     for (const owner of arbitrationConfig.makerList) {
                         const checkChallengeParamsList: CheckChallengeParams[] = await this.arbitrationService.getCheckChallengeParams(owner);
+                        await new Promise(resolve => setTimeout(resolve, 30000));
                         if (checkChallengeParamsList && checkChallengeParamsList.length) {
                             const nextChallengeParams = checkChallengeParamsList[0];
                             const hash = nextChallengeParams.sourceTxHash;
@@ -331,7 +332,6 @@ export class ArbitrationJobService {
                             }
                             const checkChallengeParams = checkChallengeParamsList.filter(item => item.sourceTxHash.toLowerCase() === hash.toLowerCase());
                             if (checkChallengeParams && checkChallengeParams.length) {
-                                await new Promise(resolve => setTimeout(resolve, 30000));
                                 return await this.arbitrationService.checkChallenge(checkChallengeParams);
                             }
                         }
