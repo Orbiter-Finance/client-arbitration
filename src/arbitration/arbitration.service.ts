@@ -561,6 +561,24 @@ export class ArbitrationService {
         return challengeHashList;
     }
 
+    async getChallenger(sourceTxHash: string): Promise<string> {
+        const queryStr = `
+                {
+                  createChallenges(
+                    where: {
+                        sourceTxHash: "${sourceTxHash.toLowerCase()}",
+                        challengeManager_: {
+                            challengeStatuses: CREATE
+                        }
+                    }) {
+                    challenger
+                  }
+                }
+          `;
+        const result = await this.querySubgraph(queryStr);
+        return result?.data?.createChallenges?.[0]?.challenger;
+    }
+
     async getEBCValue(owner: string, ebcAddress: string, ruleId: string, sourceChain: string, destChain: string, amount: string) {
         const provider = new providers.JsonRpcProvider({
             url: arbitrationConfig.rpc,

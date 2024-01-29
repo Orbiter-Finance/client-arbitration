@@ -34,4 +34,9 @@ export class AppController {
         }
         return this.appService.retryProof(data.hash);
     }
+
+    @Post('/verify_source')
+    verifySource(@Body() data: any) {
+        return this.appService.verifySource(data);
+    }
 }
