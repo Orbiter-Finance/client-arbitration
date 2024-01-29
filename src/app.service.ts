@@ -175,4 +175,41 @@ export class AppService {
         await arbitrationJsonDb.push(`/arbitrationHash/${hash.toLowerCase()}`, data);
         return { code: 0, message: 'success', result: data };
     }
+
+    async verifySource(data: any) {
+        const sourceTxHash: string = data.sourceTxHash;
+        const createChallengeHash: string = data.createChallengeHash;
+        if(!sourceTxHash || !createChallengeHash){
+            return { code: 1, message: 'Params error' };
+        }
+        const challengeHashList = await this.arbitrationService.getChallengeHashList(sourceTxHash);
+        const challenger = await this.arbitrationService.getChallenger(sourceTxHash);
+        if (!challengeHashList || !challengeHashList.length) {
+            return { code: 1, message: 'None of createChallengeHash' };
+        }
+        if (!challengeHashList.find(item => item.toLowerCase() === createChallengeHash.toLowerCase())) {
+            return { code: 1, message: 'CreateChallengeHash error' };
+        }
+        const url = `${arbitrationConfig.makerApiEndpoint}/proof/verifyChallengeSourceParams/${sourceTxHash}`;
+        const result: any = await HTTPGet(url);
+        const proofDataList: any[] = result?.data;
+        if (!proofDataList) {
+            return { code: 1, message: 'None of proof' };
+        }
+        const proofData = proofDataList.find(item => item.status);
+        if (!proofData) {
+            return { code: 1, message: 'None of success proof' };
+        }
+        console.log('data ===', {
+            ...proofData,
+            challenger: challenger,
+            submitSourceTxHash: createChallengeHash,
+        });
+        await this.arbitrationService.userSubmitProof({
+            ...proofData,
+            challenger: challenger,
+            submitSourceTxHash: createChallengeHash,
+        });
+        return { code: 0, message: 'success' };
+    }
 }
