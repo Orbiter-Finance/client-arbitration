@@ -576,7 +576,7 @@ export class ArbitrationService {
                 }
           `;
         const result = await this.querySubgraph(queryStr);
-        return result?.data?.createChallenges?.challenger;
+        return result?.data?.createChallenges?.[0]?.challenger;
     }
 
     async getEBCValue(owner: string, ebcAddress: string, ruleId: string, sourceChain: string, destChain: string, amount: string) {
