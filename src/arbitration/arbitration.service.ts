@@ -336,6 +336,8 @@ export class ArbitrationService {
                     owner: "${owner.toLowerCase()}"
                 }
             }
+            orderBy: enableTimestamp
+            orderDirection: desc
             first: 1
         ) {
             dealers
